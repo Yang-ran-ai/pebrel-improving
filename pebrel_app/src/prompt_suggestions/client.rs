@@ -288,21 +288,39 @@ fn payload(
         "messages"
     };
     let (route, mut body) = match protocol {
-        WireProtocol::Messages => (
-            messages_route,
-            json!({"model":provider.model,"max_tokens":512,"system":locale,
-            "messages":input}),
-        ),
-        WireProtocol::Responses => (
-            "responses",
-            json!({"model":provider.model,"store":false,"max_output_tokens":512,
-            "instructions":locale,"input":input}),
-        ),
+        WireProtocol::Messages => {
+            let mut body = json!({
+                "model":provider.model,
+                "max_tokens":512,
+                "system":locale,
+                "messages":input
+            });
+            if provider.kind == ProviderKind::DeepSeek {
+                body["reasoning"] = json!({"effort":"none"});
+            }
+            (messages_route, body)
+        },
+        WireProtocol::Responses => {
+            let mut body = json!({
+                "model":provider.model,
+                "store":false,
+                "max_output_tokens":512,
+                "instructions":locale,
+                "input":input
+            });
+            if provider.kind == ProviderKind::DeepSeek {
+                body["reasoning"] = json!({"effort":"none"});
+            }
+            ("responses", body)
+        },
         WireProtocol::ChatCompletions => {
             input.insert(0, json!({"role":"system", "content":locale}));
             let mut body = json!({"model":provider.model, "messages":input});
             body[if reasoning_model { "max_completion_tokens" } else { "max_tokens" }] =
                 json!(512);
+            if provider.kind == ProviderKind::DeepSeek {
+                body["thinking"] = json!({"type":"disabled"});
+            }
             ("chat/completions", body)
         },
     };
