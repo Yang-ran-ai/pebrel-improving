@@ -16,6 +16,8 @@ mod protocol_tests {
         assert_eq!(default_wire_api(ProviderKind::DeepSeek), "Chat Completions");
         assert_eq!(default_wire_api(ProviderKind::Anthropic), "Claude Messages");
         assert_eq!(default_wire_api(ProviderKind::Google), "Gemini API");
+        assert_eq!(default_wire_api(ProviderKind::OpenAi), "Chat Completions");
+        assert_eq!(default_wire_api(ProviderKind::Custom), "Chat Completions");
     }
 
     #[test]
@@ -127,7 +129,7 @@ pub(super) fn default_wire_api(kind: ProviderKind) -> &'static str {
         ProviderKind::Anthropic => "Claude Messages",
         ProviderKind::Google => "Gemini API",
         ProviderKind::DeepSeek => "Chat Completions",
-        _ => "Responses",
+        _ => "Chat Completions",
     }
 }
 
