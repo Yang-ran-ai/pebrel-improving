@@ -152,7 +152,7 @@ fn deepseek_messages_protocol_sends_the_expected_route_and_api_key_header() {
             let count = stream.read(&mut buffer).unwrap();
             assert_ne!(count, 0);
             bytes.extend_from_slice(&buffer[..count]);
-            if let Some(end) = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n") {
+            if let Some(end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
                 let headers = String::from_utf8_lossy(&bytes[..end]);
                 let length: usize = headers
                     .lines()
@@ -179,18 +179,18 @@ fn deepseek_messages_protocol_sends_the_expected_route_and_api_key_header() {
                 .to_ascii_lowercase()
                 .contains("authorization: bearer")
         );
-        assert!(request.contains("\\\"max_tokens\\\":512"));
+        assert!(request.contains("\"max_tokens\":512"));
         let body = json!({
             "stop_reason":"end_turn",
             "content":[{
                 "type":"text",
-                "text":"{\\\"suggestion\\\":\\\"DeepSeek Messages 已真实返回\\\"}"
+                "text":"{\"suggestion\":\"DeepSeek Messages 已真实返回\"}"
             }]
         })
         .to_string();
         write!(
             stream,
-            "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{body}",
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
             body.len()
         )
         .unwrap();
