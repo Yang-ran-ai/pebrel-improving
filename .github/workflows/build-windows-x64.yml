@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/build-windows-x64.yml"
       - ".gitattributes"
+      - "source"
       - "Cargo.toml"
       - "Cargo.lock"
       - "pebrel_app/**"
