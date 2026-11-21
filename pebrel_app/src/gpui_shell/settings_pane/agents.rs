@@ -29,6 +29,13 @@ pub(super) struct AgentSettingsState {
     desktop_feedback: Option<Result<String, String>>,
 }
 
+#[derive(Clone, Copy)]
+enum DeepSeekDesktopAction {
+    Download,
+    Launch,
+    Uninstall,
+}
+
 impl AgentSettingsState {
     pub(super) fn new(cx: &mut Context<SettingsPane>) -> Self {
         Self {
@@ -253,6 +260,15 @@ impl SettingsPane {
                 Err(error) => language.format(Message::SettingsAgentsFailed, &[("error", error)]),
             })
             .or_else(|| {
+                (agent == AgentKind::DeepSeekHarness)
+                    .then(|| self.agents.desktop_feedback.as_ref())
+                    .flatten()
+                    .map(|result| match result {
+                        Ok(message) => message.clone(),
+                        Err(error) => language.format(Message::SettingsAgentsFailed, &[("error", error)]),
+                    })
+            })
+            .or_else(|| {
                 state.error.as_ref().map(|error| {
                     language.format(Message::SettingsAgentsFailed, &[("error", error)])
                 })
@@ -290,6 +306,16 @@ impl SettingsPane {
             .child(
                 div().text_sm().font_weight(gpui::FontWeight::MEDIUM).child(agent.display_name()),
             )
+            .when(agent == AgentKind::DeepSeekHarness, |view| {
+                let desktop_status = if state.desktop_running {
+                    "DeepSeek Harness Desktop · Running"
+                } else if state.desktop_installed {
+                    "DeepSeek Harness Desktop · Installed"
+                } else {
+                    "DeepSeek Harness Desktop · Not installed"
+                };
+                view.child(div().text_xs().text_color(muted).child(desktop_status))
+            })
             .child(
                 div()
                     .id(("agent-cli-path", index))
@@ -411,6 +437,52 @@ impl SettingsPane {
                     .text_color(muted)
                     .child(language.text(status)),
             )
+            .when(agent == AgentKind::DeepSeekHarness, |view| {
+                let action_disabled = self.agents.loading || self.agents.busy.is_some();
+                view.child(
+                    h_flex()
+                        .flex_shrink_0()
+                        .gap_1()
+                        .when(!state.desktop_installed, |actions| {
+                            actions.child(
+                                Button::new("deepseek-desktop-download")
+                                    .ghost()
+                                    .small()
+                                    .label("Download")
+                                    .disabled(action_disabled)
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        cx.stop_propagation();
+                                        this.deepseek_desktop_action(DeepSeekDesktopAction::Download, cx);
+                                    })),
+                            )
+                        })
+                        .when(state.desktop_installed, |actions| {
+                            actions
+                                .child(
+                                    Button::new("deepseek-desktop-launch")
+                                        .ghost()
+                                        .small()
+                                        .label("Launch")
+                                        .disabled(action_disabled)
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            cx.stop_propagation();
+                                            this.deepseek_desktop_action(DeepSeekDesktopAction::Launch, cx);
+                                        })),
+                                )
+                                .child(
+                                    Button::new("deepseek-desktop-uninstall")
+                                        .ghost()
+                                        .small()
+                                        .label("Uninstall")
+                                        .disabled(action_disabled || state.desktop_running)
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            cx.stop_propagation();
+                                            this.deepseek_desktop_action(DeepSeekDesktopAction::Uninstall, cx);
+                                        })),
+                                )
+                        }),
+                )
+            })
             .when(row.hook.is_some(), |view| {
                 view.child(
                     div()
