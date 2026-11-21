@@ -490,7 +490,10 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
     }
     #[cfg(not(windows))]
     {
-        open_download_page()
+        open_download_page()?;
+        Err(std::io::Error::other(
+            "Automatic DeepSeek Harness installation is currently supported on Windows; the official release page was opened.",
+        ))
     }
 }
 
