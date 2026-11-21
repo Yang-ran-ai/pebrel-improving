@@ -54,10 +54,11 @@ pub enum AgentKind {
     Trae,
     CodeBuddy,
     CommandCode,
+    DeepSeekHarness,
 }
 
 impl AgentKind {
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 29] = [
         Self::Claude,
         Self::Codex,
         Self::Gemini,
@@ -86,6 +87,7 @@ impl AgentKind {
         Self::Trae,
         Self::CodeBuddy,
         Self::CommandCode,
+        Self::DeepSeekHarness,
     ];
 
     pub fn slug(self) -> &'static str {
@@ -118,6 +120,7 @@ impl AgentKind {
             Self::Trae => "trae-cli",
             Self::CodeBuddy => "codebuddy",
             Self::CommandCode => "command-code",
+            Self::DeepSeekHarness => "deepseek-harness",
         }
     }
 
@@ -151,6 +154,7 @@ impl AgentKind {
             Self::Trae => "Trae CLI",
             Self::CodeBuddy => "CodeBuddy Code",
             Self::CommandCode => "Command Code",
+            Self::DeepSeekHarness => "DeepSeek Harness",
         }
     }
 
@@ -194,6 +198,7 @@ impl AgentKind {
             Self::CodeBuddy => &["codebuddy", "cbc", "codebuddy-code", "codebuddy-lowmem"],
             // The package's `cmd` bin is omitted: it is the Windows Command Prompt.
             Self::CommandCode => &["command-code", "commandcode", "cmdc"],
+            Self::DeepSeekHarness => &["dsh", "deepseek-harness", "deepseek-harness-desktop"],
         }
     }
 
@@ -286,7 +291,8 @@ impl AgentKind {
             | Self::Kilo
             | Self::Qoder
             | Self::Maki
-            | Self::Trae => return None,
+            | Self::Trae
+            | Self::DeepSeekHarness => return None,
             Self::Kimi => format!("kimi --session {session_id}"),
             Self::CommandCode => format!("command-code --resume {session_id}"),
         })
