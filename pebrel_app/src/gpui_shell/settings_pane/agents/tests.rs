@@ -210,6 +210,9 @@ fn hermes_detection_row_does_not_offer_or_submit_a_hook_toggle(cx: &mut TestAppC
 
 #[test]
 fn deepseek_hook_toggle_requires_a_ready_desktop_profile_and_quit_application() {
+    if !crate::platform::CAPABILITIES.ai_hook_server {
+        return;
+    }
     let mut row = AgentIntegration {
         agent: AgentKind::DeepSeekHarness,
         executable: Some("C:/Program Files/DeepSeek Harness/DeepSeek Harness.exe".into()),
