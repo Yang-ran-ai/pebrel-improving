@@ -10,7 +10,7 @@ const EVENT_MAP = new Map([
   ['turn/end', 'Stop'],
 ])
 
-function makePayload(session, event) {
+export function toPebrelPayload(session, event) {
   const hookEvent = EVENT_MAP.get(event.type)
   if (!hookEvent) return undefined
 
@@ -38,7 +38,7 @@ function forward(helperPath, session, event) {
   if (!isAbsolute(helperPath)) return
   if (!process.env.PEBREL_NOTIFY_PIPE && !process.env.NEBULA_NOTIFY_PIPE) return
 
-  const payload = makePayload(session, event)
+  const payload = toPebrelPayload(session, event)
   if (!payload) return
 
   const child = spawn(helperPath, ['deepseek-harness'], {
