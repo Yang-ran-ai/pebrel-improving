@@ -33,6 +33,7 @@ pub(super) struct AgentSettingsState {
 enum DeepSeekDesktopAction {
     Install,
     Launch,
+    Refresh,
     Uninstall,
 }
 
@@ -93,11 +94,13 @@ impl SettingsPane {
             let result = match action {
                 DeepSeekDesktopAction::Install => integrations::install_deepseek_harness_desktop(),
                 DeepSeekDesktopAction::Launch => integrations::launch_deepseek_harness(),
+                DeepSeekDesktopAction::Refresh => Ok(()),
                 DeepSeekDesktopAction::Uninstall => integrations::uninstall_deepseek_harness(),
             };
             let message = match action {
                 DeepSeekDesktopAction::Install => "DeepSeek Harness setup completed".to_owned(),
                 DeepSeekDesktopAction::Launch => "DeepSeek Harness launch requested".to_owned(),
+                DeepSeekDesktopAction::Refresh => "DeepSeek Harness status refreshed".to_owned(),
                 DeepSeekDesktopAction::Uninstall => "DeepSeek Harness uninstaller started".to_owned(),
             };
             (result.map(|()| message), integrations::inspect())
@@ -309,8 +312,10 @@ impl SettingsPane {
             .when(agent == AgentKind::DeepSeekHarness, |view| {
                 let desktop_status = if state.desktop_running {
                     "DeepSeek Harness Desktop · Running"
+                } else if state.desktop_installed && state.desktop_profile_initialized {
+                    "DeepSeek Harness Desktop · Installed · Profile ready"
                 } else if state.desktop_installed {
-                    "DeepSeek Harness Desktop · Installed"
+                    "DeepSeek Harness Desktop · Installed · First launch required"
                 } else {
                     "DeepSeek Harness Desktop · Not installed"
                 };
@@ -456,6 +461,17 @@ impl SettingsPane {
                                     })),
                             )
                         })
+                        .child(
+                            Button::new("deepseek-desktop-refresh")
+                                .ghost()
+                                .small()
+                                .label("Refresh")
+                                .disabled(action_disabled)
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    cx.stop_propagation();
+                                    this.deepseek_desktop_action(DeepSeekDesktopAction::Refresh, cx);
+                                })),
+                        )
                         .when(state.desktop_installed, |actions| {
                             actions
                                 .child(
