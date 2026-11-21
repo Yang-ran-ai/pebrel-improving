@@ -272,6 +272,10 @@ impl SettingsPane {
                     })
             })
             .or_else(|| {
+                (agent == AgentKind::DeepSeekHarness && state.desktop_running)
+                    .then(|| "Quit DeepSeek Harness from the tray menu before changing its Hook; closing the window only hides it.".to_owned())
+            })
+            .or_else(|| {
                 state.error.as_ref().map(|error| {
                     language.format(Message::SettingsAgentsFailed, &[("error", error)])
                 })
