@@ -492,6 +492,10 @@ impl SettingsPane {
                         .flex()
                         .items_center()
                         .justify_center()
+                        .gap_2()
+                        .when(agent == AgentKind::DeepSeekHarness, |view| {
+                            view.child(div().text_xs().text_color(muted).child("Hook"))
+                        })
                         .child(
                             crate::gpui_shell::widgets::NebulaSwitch::new(format!(
                                 "agent-{}",
