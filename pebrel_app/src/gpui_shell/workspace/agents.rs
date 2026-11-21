@@ -40,7 +40,9 @@ pub(super) fn ai_hook_target_pane_for_cwd(
     if let Some(pane_id) = event_pane {
         return pane_ids.contains(&pane_id).then_some(pane_id);
     }
-    let event_cwd = event_cwd.filter(|cwd| !cwd.trim().is_empty())?;
+    let Some(event_cwd) = event_cwd.filter(|cwd| !cwd.trim().is_empty()) else {
+        return active_focused;
+    };
     let matches = |pane_id: u64| {
         pane_cwds
             .iter()
@@ -49,7 +51,12 @@ pub(super) fn ai_hook_target_pane_for_cwd(
     };
     active_focused
         .filter(|pane_id| matches(*pane_id))
-        .or_else(|| pane_cwds.iter().find(|(_, cwd)| same_workspace_path(cwd, event_cwd)).map(|(id, _)| *id))
+        .or_else(|| {
+            pane_cwds
+                .iter()
+                .find(|(_, cwd)| same_workspace_path(cwd, event_cwd))
+                .map(|(id, _)| *id)
+        })
         .or(active_focused)
 }
 
