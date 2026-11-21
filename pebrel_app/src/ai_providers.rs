@@ -1008,22 +1008,25 @@ mod tests {
                 "Responses",
                 "/responses",
                 "authorization: bearer",
+                "\\"reasoning\\":{\\"effort\\":\\"none\\"}",
                 r#"{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}"#,
             ),
             (
                 "Chat Completions",
                 "/chat/completions",
                 "authorization: bearer",
+                "\\"thinking\\":{\\"type\\":\\"disabled\\"}",
                 r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
             ),
             (
                 "Claude Messages",
                 "/anthropic/v1/messages",
                 "x-api-key: test-deepseek-key",
+                "\\"reasoning\\":{\\"effort\\":\\"none\\"}",
                 r#"{"content":[{"type":"text","text":"messages ok"}]}"#,
             ),
         ];
-        for (protocol, route, expected_auth, response_body) in fixtures {
+        for (protocol, route, expected_auth, expected_option, response_body) in fixtures {
             let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
             let mut provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-http-probe");
             provider.base_url = format!("http://{}", listener.local_addr().unwrap());
@@ -1057,6 +1060,7 @@ mod tests {
                     "post {route} http/1.1"
                 )));
                 assert!(request.contains(expected_auth));
+                assert!(request.contains(expected_option));
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
                     response_body.len()
