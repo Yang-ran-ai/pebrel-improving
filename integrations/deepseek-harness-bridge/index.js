@@ -10,12 +10,13 @@ const EVENT_MAP = new Map([
 ])
 
 export function toPebrelPayload(session, event) {
+  if (!session || !event || typeof event.type !== 'string') return undefined
   const hookEvent = EVENT_MAP.get(event.type)
   if (!hookEvent) return undefined
 
   // Harness event identity is the deduplication and ordering boundary in Pebrel.
   // Never manufacture "undefined" IDs or serialize NaN timestamps as null.
-  if (session?.id == null || String(session.id).trim() === '') return undefined
+  if (session.id == null || String(session.id).trim() === '') return undefined
   if (!Number.isSafeInteger(event.seq) || event.seq < 0) return undefined
   if (!Number.isFinite(event.time) || event.time < 0) return undefined
 
@@ -74,6 +75,11 @@ export function apply(ctx, config = {}) {
 
   const queues = new Map()
   ctx.on('session/event', (session, event) => {
+    // Cordis listeners must never throw back into the Desktop event dispatcher.
+    // A malformed event has no stable queue identity and cannot be routed.
+    if (session?.id == null || String(session.id).trim() === '' || !event || typeof event.type !== 'string') {
+      return
+    }
     const id = String(session.id)
     const previous = queues.get(id) ?? Promise.resolve()
     const next = previous
