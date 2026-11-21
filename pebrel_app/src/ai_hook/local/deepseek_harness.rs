@@ -334,14 +334,20 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
         let installer = directory.join("deepseek-harness-windows-x64.exe");
 
         let download = (|| -> std::io::Result<()> {
-            let mut response = ureq::get(WINDOWS_INSTALLER_URL)
+            let config = ureq::Agent::config_builder()
+                .timeout_global(Some(std::time::Duration::from_secs(900)))
+                .build();
+            let agent: ureq::Agent = config.into();
+            let mut response = agent
+                .get(WINDOWS_INSTALLER_URL)
                 .call()
                 .map_err(|error| std::io::Error::other(format!(
                     "Could not download the official DeepSeek Harness installer: {error}"
                 )))?;
             let mut file = std::fs::File::create(&partial)?;
-            let mut reader = response.body_mut().as_reader();
-            std::io::copy(&mut reader, &mut file)?;
+            let reader = response.body_mut().as_reader();
+            let mut limited = reader.take(1_000_000_001);
+            std::io::copy(&mut limited, &mut file)?;
             file.flush()?;
             file.sync_all()?;
 
@@ -357,6 +363,9 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
                 return Err(std::io::Error::other(
                     "The downloaded file is not a Windows executable; it was not run."
                 ));
+            }
+            if installer.exists() {
+                std::fs::remove_file(&installer)?;
             }
             std::fs::rename(&partial, &installer)?;
             Ok(())
