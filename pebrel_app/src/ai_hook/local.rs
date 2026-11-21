@@ -24,6 +24,10 @@ pub(super) fn deepseek_harness_executable() -> Option<std::path::PathBuf> {
     deepseek_harness::desktop_executable()
 }
 
+pub(super) fn install_deepseek_harness_desktop() -> std::io::Result<()> {
+    deepseek_harness::install_desktop()
+}
+
 pub(super) fn launch_deepseek_harness() -> std::io::Result<()> {
     deepseek_harness::launch_desktop()
 }
