@@ -77,6 +77,10 @@ fn bridge_directory() -> PathBuf {
 
 pub(crate) fn desktop_executable() -> Option<PathBuf> {
     let mut candidates = Vec::new();
+    #[cfg(windows)]
+    if let Some(directory) = registered_install_directory() {
+        candidates.push(directory.join("DeepSeek Harness.exe"));
+    }
     if let Some(local) = std::env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local);
         candidates.extend([
@@ -96,6 +100,51 @@ pub(crate) fn desktop_executable() -> Option<PathBuf> {
         candidates.push(home.join(".local/bin/deepseek-harness-desktop"));
     }
     candidates.into_iter().find(|path| path.is_file())
+}
+
+#[cfg(windows)]
+fn registered_install_directory() -> Option<PathBuf> {
+    for root in [
+        r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+        r"HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+        r"HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+    ] {
+        let output = Command::new("reg.exe").args(["query", root, "/s"]).output().ok()?;
+        if !output.status.success() {
+            continue;
+        }
+        let raw = String::from_utf8_lossy(&output.stdout);
+        let mut key_matches = false;
+        let mut install_location = None;
+        for line in raw.lines() {
+            let line = line.trim();
+            if line.starts_with("HKEY_") {
+                if key_matches {
+                    if let Some(path) = install_location.take() {
+                        return Some(path);
+                    }
+                }
+                key_matches = false;
+                install_location = None;
+            } else if let Some((name, value)) = line.split_once("REG_SZ") {
+                let name = name.trim();
+                let value = value.trim();
+                if name.eq_ignore_ascii_case("DisplayName")
+                    && value.eq_ignore_ascii_case("DeepSeek Harness")
+                {
+                    key_matches = true;
+                } else if name.eq_ignore_ascii_case("InstallLocation") && !value.is_empty() {
+                    install_location = Some(PathBuf::from(value));
+                }
+            }
+        }
+        if key_matches {
+            if let Some(path) = install_location {
+                return Some(path);
+            }
+        }
+    }
+    None
 }
 
 fn dsh_cli(desktop: Option<&Path>) -> Option<PathBuf> {
