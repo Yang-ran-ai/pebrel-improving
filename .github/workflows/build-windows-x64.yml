@@ -40,9 +40,9 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ inputs.package_version }}
         run: |
-          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+) { throw 'Invalid package version.' }
+          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid package version.' }
           $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
-          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*)
+          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*$')
           if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
             throw 'Package version must match pebrel_app/Cargo.toml.'
           }
@@ -75,7 +75,7 @@ jobs:
           retention-days: 30
 ) { throw 'Invalid package version.' }
           $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
-          $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
+          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*$')
           if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
             throw 'Package version must match pebrel_app/Cargo.toml.'
           }
@@ -139,7 +139,7 @@ jobs:
           retention-days: 30
 ) { throw 'Invalid package version.' }
           $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
-          $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
+          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*$')
           if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
             throw 'Package version must match pebrel_app/Cargo.toml.'
           }
