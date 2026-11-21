@@ -21,6 +21,7 @@ pub(super) enum ProviderStatus {
     Testing,
     ModelsFetched(usize),
     TestResult { outcome: crate::provider_test::ProviderTestOutcome, elapsed_ms: u64 },
+    GenerationTest { preview: String, elapsed_ms: u64 },
     CodexConfirmation,
     AppliedToCodex(std::path::PathBuf),
     AppliedToClaude(std::path::PathBuf),
@@ -33,6 +34,7 @@ impl ProviderStatus {
         match self {
             Self::AtLeastOneRequired | Self::Error(_) => true,
             Self::TestResult { outcome, .. } => !outcome.is_success(),
+            Self::GenerationTest { preview, .. } => preview.is_empty(),
             _ => false,
         }
     }
@@ -61,6 +63,11 @@ impl ProviderStatus {
             Self::TestResult { outcome, elapsed_ms } => {
                 format!("{} · {elapsed_ms} ms", language.provider_test_message(outcome))
             },
+            Self::GenerationTest { preview, elapsed_ms } => format!(
+                "{}: {} · {elapsed_ms} ms",
+                language.pick("模型生成成功", "Model generated a response"),
+                preview
+            ),
             Self::CodexConfirmation => language
                 .pick(
                     "再次点击确认：API Key 将明文写入 Codex auth.json（原文件会备份）",
