@@ -269,19 +269,24 @@ fn payload(
         || provider.model.starts_with("o3")
         || provider.model.starts_with("o4");
     let protocol = wire_protocol(provider)?;
+    let base = provider.base_url.trim().trim_end_matches('/');
+    let messages_route = if provider.kind == ProviderKind::DeepSeek {
+        if base.ends_with("/anthropic/v1") {
+            "messages"
+        } else if base.ends_with("/anthropic") {
+            "v1/messages"
+        } else {
+            "anthropic/v1/messages"
+        }
+    } else {
+        "messages"
+    };
     let (route, mut body) = match protocol {
-        WireProtocol::Messages => {
-            let route = if provider.kind == ProviderKind::DeepSeek {
-                "anthropic/v1/messages"
-            } else {
-                "messages"
-            };
-            (
-                route,
-                json!({"model":provider.model,"max_tokens":512,"system":locale,
-                "messages":input}),
-            )
-        },
+        WireProtocol::Messages => (
+            messages_route,
+            json!({"model":provider.model,"max_tokens":512,"system":locale,
+            "messages":input}),
+        ),
         WireProtocol::Responses => (
             "responses",
             json!({"model":provider.model,"store":false,"max_output_tokens":512,
@@ -301,7 +306,6 @@ fn payload(
             body["reasoning_effort"] = json!("low");
         }
     }
-    let base = provider.base_url.trim().trim_end_matches('/');
     let url = if provider.full_url { base.to_owned() } else { format!("{base}/{route}") };
     Some((url, body))
 }
