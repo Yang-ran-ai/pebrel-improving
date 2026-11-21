@@ -54,7 +54,7 @@ diff --git a/pebrel_app/src/gpui_shell/terminal/answer_reader.rs b/pebrel_app/sr
 diff --git a/pebrel_app/src/ai_hook/protocol.rs b/pebrel_app/src/ai_hook/protocol.rs
 --- a/pebrel_app/src/ai_hook/protocol.rs
 +++ b/pebrel_app/src/ai_hook/protocol.rs
-@@ -20,7 +20,7 @@
+@@ -20,3 +20,3 @@
  pub(super) fn claude_style(source: &str) -> bool {
 -    matches!(source, "claude" | "qoder" | "codebuddy" | "qwen" | "droid")
 +    matches!(source, "claude" | "qoder" | "codebuddy" | "qwen" | "droid" | "deepseek-harness")
@@ -62,7 +62,7 @@ diff --git a/pebrel_app/src/ai_hook/protocol.rs b/pebrel_app/src/ai_hook/protoco
 diff --git a/pebrel_hook/src/main.rs b/pebrel_hook/src/main.rs
 --- a/pebrel_hook/src/main.rs
 +++ b/pebrel_hook/src/main.rs
-@@ -177,7 +177,8 @@
+@@ -177,5 +177,6 @@
              | "qwen"
              | "droid"
 -            | "antigravity"
@@ -70,7 +70,7 @@ diff --git a/pebrel_hook/src/main.rs b/pebrel_hook/src/main.rs
 +            | "deepseek-harness"
      )
  }
-@@ -191,7 +192,8 @@
+@@ -191,5 +192,6 @@
              | "qwen"
              | "droid"
 -            | "antigravity"
