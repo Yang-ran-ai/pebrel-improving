@@ -483,7 +483,7 @@ impl SettingsPane {
                                         .ghost()
                                         .small()
                                         .label("Launch")
-                                        .disabled(action_disabled)
+                                        .disabled(action_disabled || state.desktop_running)
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             cx.stop_propagation();
                                             this.deepseek_desktop_action(DeepSeekDesktopAction::Launch, cx);
