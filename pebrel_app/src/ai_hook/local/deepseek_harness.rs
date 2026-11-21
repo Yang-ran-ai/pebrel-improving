@@ -424,8 +424,14 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
             let _ = std::fs::remove_file(&partial);
             return Err(error);
         }
-        Command::new(installer).spawn()?;
-        Ok(())
+        let status = Command::new(installer).status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(std::io::Error::other(format!(
+                "DeepSeek Harness setup exited with {status}."
+            )))
+        }
     }
     #[cfg(not(windows))]
     {
