@@ -248,6 +248,26 @@ mod tests {
     #[test]
     fn agents_page_exposes_all_recognized_clients_and_only_verified_hook_protocols() {
         assert_eq!(AGENTS, AgentKind::ALL);
+        let supported = [
+            (AgentKind::Claude, AgentHook::Claude),
+            (AgentKind::Codex, AgentHook::Codex),
+            (AgentKind::OpenCode, AgentHook::OpenCode),
+            (AgentKind::Pi, AgentHook::Pi),
+            (AgentKind::Copilot, AgentHook::Copilot),
+            (AgentKind::Grok, AgentHook::Grok),
+            (AgentKind::OhMyPi, AgentHook::OhMyPi),
+            (AgentKind::Cursor, AgentHook::Cursor),
+            (AgentKind::Kimi, AgentHook::Kimi),
+            (AgentKind::Qoder, AgentHook::Qoder),
+            (AgentKind::CodeBuddy, AgentHook::CodeBuddy),
+            (AgentKind::Qwen, AgentHook::Qwen),
+            (AgentKind::Droid, AgentHook::Droid),
+            (AgentKind::Antigravity, AgentHook::Antigravity),
+            (AgentKind::DeepSeekHarness, AgentHook::DeepSeekHarness),
+        ];
+        for (agent, hook) in supported {
+            assert_eq!(hook_for(agent), Some(hook), "{} hook protocol mapping", agent.slug());
+        }
         assert_eq!(
             AGENTS.iter().filter_map(|agent| hook_for(*agent)).count(),
             AgentHook::ALL.len()
