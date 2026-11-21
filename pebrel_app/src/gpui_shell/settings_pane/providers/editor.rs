@@ -376,7 +376,9 @@ impl SettingsPane {
                                     .tooltip(language.text(Message::ProvidersFetch))
                                     .loading(self.provider_ui.fetching)
                                     .disabled(
-                                        self.provider_ui.fetching || busy || self.provider_test_running,
+                                        self.provider_ui.fetching
+                                            || busy
+                                            || self.provider_test_running,
                                     )
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.fetch_provider_models(window, cx)
