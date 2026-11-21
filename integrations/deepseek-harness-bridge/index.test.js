@@ -33,6 +33,24 @@ test('maps supported Harness events to Pebrel lifecycle events without forwardin
   }
 })
 
+test('only publishes an absolute workspace cwd for Pane routing', () => {
+  const payload = toPebrelPayload(session, {
+    type: 'user/message',
+    seq: 8,
+    time: 1_700_000_000_001,
+    data: {},
+  })
+  assert.equal(payload.cwd, 'C:/work/project')
+
+  const withoutCwd = toPebrelPayload({ id: 'session-43', cwd: 'relative/work' }, {
+    type: 'turn/end',
+    seq: 9,
+    time: 1_700_000_000_002,
+    data: {},
+  })
+  assert.equal('cwd' in withoutCwd, false)
+})
+
 test('ignores unsupported and malformed events instead of inventing session identity', () => {
   assert.equal(toPebrelPayload(session, { type: 'turn/start', seq: 1, time: 1 }), undefined)
   assert.equal(toPebrelPayload({}, { type: 'turn/end', seq: 1, time: 1 }), undefined)
