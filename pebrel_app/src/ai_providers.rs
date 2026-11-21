@@ -598,11 +598,13 @@ pub fn test_deepseek_generation(
             "model": model,
             "input": "Reply with exactly this token and nothing else: PEBREL_API_OK",
             "max_output_tokens": 32,
+            "reasoning": {"effort": "none"},
             "stream": false
         }),
         "Claude Messages" => serde_json::json!({
             "model": model,
             "max_tokens": 32,
+            "reasoning": {"effort": "none"},
             "messages": [{
                 "role": "user",
                 "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
@@ -615,7 +617,8 @@ pub fn test_deepseek_generation(
                 "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
             }],
             "stream": false,
-            "max_tokens": 32
+            "max_tokens": 32,
+            "thinking": {"type": "disabled"}
         }),
         _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
     };
