@@ -96,7 +96,7 @@ impl SettingsPane {
                 DeepSeekDesktopAction::Uninstall => integrations::uninstall_deepseek_harness(),
             };
             let message = match action {
-                DeepSeekDesktopAction::Download => "Downloaded the official installer and started setup".to_owned(),
+                DeepSeekDesktopAction::Install => "DeepSeek Harness setup completed".to_owned(),
                 DeepSeekDesktopAction::Launch => "DeepSeek Harness launch requested".to_owned(),
                 DeepSeekDesktopAction::Uninstall => "DeepSeek Harness uninstaller started".to_owned(),
             };
