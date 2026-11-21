@@ -135,12 +135,15 @@ impl SettingsPane {
         self.provider_test_seq = self.provider_test_seq.wrapping_add(1);
         let sequence = self.provider_test_seq;
         self.provider_test_running = true;
-        self.provider_status = Some(ProviderStatus::Testing);
+        self.provider_status = Some(ProviderStatus::TestingGeneration);
         let task = cx.background_executor().spawn(async move {
-            crate::ai_providers::test_deepseek_generation(&provider, key)
+            let started = std::time::Instant::now();
+            let result = crate::ai_providers::test_deepseek_generation(&provider, key);
+            let elapsed_ms = started.elapsed().as_millis().min(u64::MAX as u128) as u64;
+            (result, elapsed_ms)
         });
         cx.spawn_in(window, async move |this, cx| {
-            let result = task.await;
+            let (result, elapsed_ms) = task.await;
             let _ = this.update_in(cx, |this, _window, cx| {
                 if this.provider_test_seq != sequence || this.provider_ui.editing.as_ref() != Some(&id) {
                     return;
@@ -149,7 +152,7 @@ impl SettingsPane {
                 this.provider_status = Some(match result {
                     Ok((_, preview)) => ProviderStatus::GenerationTest {
                         preview,
-                        elapsed_ms: 0,
+                        elapsed_ms,
                     },
                     Err(error) => ProviderStatus::Error(error),
                 });
