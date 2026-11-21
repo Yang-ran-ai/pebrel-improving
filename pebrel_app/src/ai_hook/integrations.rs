@@ -34,6 +34,10 @@ pub(crate) struct HookInspection {
     pub enabled: bool,
     pub helper_missing: bool,
     pub error: Option<String>,
+    pub desktop_installed: bool,
+    pub desktop_running: bool,
+    pub desktop_profile_initialized: bool,
+    pub desktop_executable: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
@@ -67,22 +71,51 @@ pub(crate) fn hook_for(agent: AgentKind) -> Option<AgentHook> {
 
 pub(crate) fn inspect() -> Vec<AgentIntegration> {
     let dirs = executable_directories();
+    let deepseek = super::local::deepseek_harness_state();
     AGENTS
         .into_iter()
         .map(|agent| {
             let hook = hook_for(agent);
             AgentIntegration {
                 agent,
-                executable: find_executable(agent, &dirs),
+                executable: if agent == AgentKind::DeepSeekHarness {
+                    deepseek.desktop_executable.clone()
+                } else {
+                    find_executable(agent, &dirs)
+                },
                 hook,
-                inspection: hook.map(inspect_hook).unwrap_or_default(),
+                inspection: if agent == AgentKind::DeepSeekHarness {
+                    let mut inspection = hook.map(inspect_hook).unwrap_or_default();
+                    inspection.desktop_installed = deepseek.desktop_installed;
+                    inspection.desktop_running = deepseek.desktop_running;
+                    inspection.desktop_profile_initialized = deepseek.profile_initialized;
+                    inspection.desktop_executable = deepseek.desktop_executable.clone();
+                    inspection
+                } else {
+                    hook.map(inspect_hook).unwrap_or_default()
+                },
             }
         })
         .collect()
 }
 
 pub(crate) fn executable(agent: AgentKind) -> Option<PathBuf> {
+    if agent == AgentKind::DeepSeekHarness {
+        return super::local::deepseek_harness_executable();
+    }
     find_executable(agent, &executable_directories())
+}
+
+pub(crate) fn launch_deepseek_harness() -> Result<(), String> {
+    super::local::launch_deepseek_harness().map_err(|error| error.to_string())
+}
+
+pub(crate) fn uninstall_deepseek_harness() -> Result<(), String> {
+    super::local::uninstall_deepseek_harness().map_err(|error| error.to_string())
+}
+
+pub(crate) fn open_deepseek_harness_download() -> Result<(), String> {
+    super::local::open_deepseek_harness_download().map_err(|error| error.to_string())
 }
 
 fn inspect_hook(hook: AgentHook) -> HookInspection {
