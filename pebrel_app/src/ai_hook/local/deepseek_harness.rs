@@ -455,7 +455,7 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
             file.sync_all()?;
 
             let size = file.metadata()?.len();
-            if !(50_000_000..=1_000_000_000).contains(&size) {
+            if !(1_000_000..=1_000_000_000).contains(&size) {
                 return Err(std::io::Error::other(format!(
                     "The downloaded installer has an unexpected size ({size} bytes); it was not run."
                 )));
