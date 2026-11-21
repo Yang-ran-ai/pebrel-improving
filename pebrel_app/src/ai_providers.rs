@@ -433,7 +433,10 @@ fn test_url(provider: &AiProvider) -> Result<String, ProviderTestOutcome> {
             format!("{resource}/openai/models?api-version=2024-10-21")
         },
         ProviderKind::DeepSeek => {
-            let root = base.strip_suffix("/anthropic").unwrap_or(base);
+            let root = base
+                .strip_suffix("/anthropic/v1")
+                .or_else(|| base.strip_suffix("/anthropic"))
+                .unwrap_or(base);
             format!("{root}/models")
         },
         _ => format!("{base}/models"),
@@ -736,6 +739,22 @@ mod deepseek_generation_tests {
         assert_eq!(
             deepseek_generation_url(&provider, "Chat Completions").unwrap(),
             "https://api.deepseek.com/chat/completions"
+        );
+        let mut anthropic_base = provider.clone();
+        anthropic_base.base_url = "https://api.deepseek.com/anthropic".into();
+        assert_eq!(
+            deepseek_generation_url(&anthropic_base, "Claude Messages").unwrap(),
+            "https://api.deepseek.com/anthropic/v1/messages"
+        );
+        anthropic_base.base_url = "https://api.deepseek.com/anthropic/v1".into();
+        assert_eq!(
+            deepseek_generation_url(&anthropic_base, "Claude Messages").unwrap(),
+            "https://api.deepseek.com/anthropic/v1/messages"
+        );
+        anthropic_base.base_url = "https://api.deepseek.com/anthropic/v1/messages".into();
+        assert_eq!(
+            deepseek_generation_url(&anthropic_base, "Claude Messages").unwrap(),
+            "https://api.deepseek.com/anthropic/v1/messages"
         );
         assert!(deepseek_generation_url(&provider, "Gemini API").is_err());
     }
