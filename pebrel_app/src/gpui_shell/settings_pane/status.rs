@@ -19,6 +19,7 @@ pub(super) enum ProviderStatus {
     Deleted,
     ApiKeySaved,
     Testing,
+    TestingGeneration,
     ModelsFetched(usize),
     TestResult { outcome: crate::provider_test::ProviderTestOutcome, elapsed_ms: u64 },
     GenerationTest { preview: String, elapsed_ms: u64 },
@@ -60,6 +61,7 @@ impl ProviderStatus {
                 )
                 .into(),
             Self::Testing => language.pick("正在测试连接…", "Testing connection...").into(),
+            Self::TestingGeneration => language.pick("正在发送 DeepSeek 测试请求…", "Sending a DeepSeek test request...").into(),
             Self::TestResult { outcome, elapsed_ms } => {
                 format!("{} · {elapsed_ms} ms", language.provider_test_message(outcome))
             },
