@@ -1050,7 +1050,9 @@ mod tests {
                     }
                 }
                 let request = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
-                assert!(request.starts_with(&format!("post {route} http/1.1")));
+                assert!(request.starts_with(&format!(
+                    "post {route} http/1.1"
+                )));
                 assert!(request.contains(expected_auth));
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
@@ -1064,7 +1066,11 @@ mod tests {
             )
             .unwrap();
             assert_eq!(result.0, 200, "{protocol}");
-            assert!(result.1.ends_with("ok"), "{protocol}: {}", result.1);
+            assert!(
+                result.1.ends_with("ok"),
+                "{protocol}: {}",
+                result.1
+            );
             server.join().unwrap();
         }
     }
