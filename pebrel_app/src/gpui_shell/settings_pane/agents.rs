@@ -514,7 +514,7 @@ impl SettingsPane {
                         .justify_center()
                         .gap_2()
                         .when(agent == AgentKind::DeepSeekHarness, |view| {
-                            view.child(div().text_xs().text_color(muted).child("Hook"))
+                            view.child(div().text_xs().text_color(muted).child("Pane Hook"))
                         })
                         .child(
                             crate::gpui_shell::widgets::NebulaSwitch::new(format!(
