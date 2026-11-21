@@ -272,11 +272,19 @@ fn find_uninstaller(executable: &Path) -> Option<PathBuf> {
         "unins000.exe",
         "uninstall.exe",
     ];
-    executable
-        .parent()?
-        .ancestors()
-        .take(2)
-        .find_map(|directory| NAMES.iter().map(|name| directory.join(name)).find(|path| path.is_file()))
+    let parent = executable.parent()?;
+    let find_in = |directory: &Path| {
+        NAMES.iter().map(|name| directory.join(name)).find(|path| path.is_file())
+    };
+    find_in(parent).or_else(|| {
+        // Only look one level up for an Electron-style version directory.
+        // Do not wander into generic parents such as "Programs" or a drive root.
+        let version_directory = parent.file_name()?.to_string_lossy().to_ascii_lowercase();
+        if !version_directory.starts_with("app-") {
+            return None;
+        }
+        find_in(parent.parent()?)
+    })
 }
 
 fn run_dsh(cli: &Path, arguments: &[&str]) -> std::io::Result<()> {
