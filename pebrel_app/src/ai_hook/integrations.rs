@@ -266,7 +266,12 @@ mod tests {
             (AgentKind::DeepSeekHarness, AgentHook::DeepSeekHarness),
         ];
         for (agent, hook) in supported {
-            assert_eq!(hook_for(agent), Some(hook), "{} hook protocol mapping", agent.slug());
+            assert_eq!(
+                hook_for(agent),
+                Some(hook),
+                "{} hook protocol mapping",
+                agent.slug()
+            );
         }
         assert_eq!(
             AGENTS.iter().filter_map(|agent| hook_for(*agent)).count(),
