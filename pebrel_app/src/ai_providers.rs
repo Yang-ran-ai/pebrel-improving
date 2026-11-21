@@ -452,6 +452,15 @@ fn semantic_error(error: &ureq::Error) -> ProviderTestOutcome {
 /// Callers must run this off their UI thread. Credential lookup stays inside
 /// this function; no UI receives plaintext from the OS credential store.
 pub fn test_provider(provider: &AiProvider) -> ProviderTestResult {
+    test_provider_with_key(provider, None)
+}
+
+/// Connectivity test with an optional write-only key draft from the editor.
+/// The plaintext key remains inside this worker and is zeroized on drop.
+pub fn test_provider_with_key(
+    provider: &AiProvider,
+    draft_key: Option<Zeroizing<String>>,
+) -> ProviderTestResult {
     let started = Instant::now();
     let elapsed = || started.elapsed().as_millis().min(u64::MAX as u128) as u64;
     let finish = |outcome: ProviderTestOutcome| ProviderTestResult {
@@ -467,14 +476,20 @@ pub fn test_provider(provider: &AiProvider) -> ProviderTestResult {
         return finish(ProviderTestOutcome::MissingModel);
     }
     let key = if provider.kind.requires_api_key() {
-        let secret = match load_api_key(&provider.id) {
-            Ok(Some(secret)) if !secret.is_empty() => secret,
-            Ok(_) => return finish(ProviderTestOutcome::MissingApiKey),
-            Err(_) => return finish(ProviderTestOutcome::CredentialReadFailed),
-        };
-        match String::from_utf8(secret) {
-            Ok(key) => Zeroizing::new(key),
-            Err(_) => return finish(ProviderTestOutcome::InvalidCredentialEncoding),
+        match draft_key {
+            Some(key) if !key.is_empty() => key,
+            Some(_) => return finish(ProviderTestOutcome::MissingApiKey),
+            None => {
+                let secret = match load_api_key(&provider.id) {
+                    Ok(Some(secret)) if !secret.is_empty() => secret,
+                    Ok(_) => return finish(ProviderTestOutcome::MissingApiKey),
+                    Err(_) => return finish(ProviderTestOutcome::CredentialReadFailed),
+                };
+                match String::from_utf8(secret) {
+                    Ok(key) => Zeroizing::new(key),
+                    Err(_) => return finish(ProviderTestOutcome::InvalidCredentialEncoding),
+                }
+            },
         }
     } else {
         Zeroizing::new(String::new())
@@ -522,6 +537,142 @@ pub fn test_provider(provider: &AiProvider) -> ProviderTestResult {
         _ => ProviderTestOutcome::HttpStatus { status },
     };
     finish(outcome)
+}
+
+/// Send a real, minimal DeepSeek Chat Completions request. This is separate
+/// from GET /models: a catalog response does not prove model generation works.
+pub fn test_deepseek_generation(
+    provider: &AiProvider,
+    draft_key: Option<Zeroizing<String>>,
+) -> Result<(u16, String), String> {
+    if provider.kind != ProviderKind::DeepSeek {
+        return Err("Real generation probe is currently defined only for the DeepSeek API preset".into());
+    }
+    let model = provider.model.trim();
+    if model.is_empty() {
+        return Err("Choose a DeepSeek model before sending a test request".into());
+    }
+    let url = deepseek_generation_url(provider)?;
+    let key = match draft_key {
+        Some(key) if !key.is_empty() => key,
+        Some(_) => return Err("Enter a DeepSeek API key".into()),
+        None => {
+            let bytes = load_api_key(&provider.id)
+                .map_err(|_| "DeepSeek credential read failed")?
+                .ok_or("Save a DeepSeek API key first")?;
+            if bytes.is_empty() {
+                return Err("Save a DeepSeek API key first".into());
+            }
+            Zeroizing::new(
+                String::from_utf8(bytes).map_err(|_| "Invalid DeepSeek credential encoding")?,
+            )
+        },
+    };
+    let uri: ureq::http::Uri = url.parse().map_err(|_| "Invalid DeepSeek API endpoint")?;
+    let host = uri.host().unwrap_or("").trim_matches(['[', ']']);
+    let loopback = host.eq_ignore_ascii_case("localhost")
+        || host.parse::<std::net::IpAddr>().is_ok_and(|ip| ip.is_loopback());
+    let config = ureq::config::Config::builder()
+        .timeout_global(Some(Duration::from_secs(45)))
+        .max_redirects(0)
+        .http_status_as_error(false);
+    let config = if loopback { config.proxy(None) } else { config }.build();
+    let agent: ureq::Agent = config.new_agent();
+    let bearer = Zeroizing::new(format!("Bearer {}", key.as_str()));
+    let payload = serde_json::json!({
+        "model": model,
+        "messages": [{
+            "role": "user",
+            "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
+        }],
+        "stream": false,
+        "max_tokens": 32
+    });
+    let mut response = agent
+        .post(&url)
+        .header("Authorization", bearer.as_str())
+        .header("Content-Type", "application/json")
+        .send_json(&payload)
+        .map_err(|error| match semantic_error(&error) {
+            ProviderTestOutcome::Timeout => "DeepSeek generation request timed out".to_owned(),
+            ProviderTestOutcome::HostNotFound => "DeepSeek API host was not found".to_owned(),
+            ProviderTestOutcome::ConnectionFailed => "Could not connect to the DeepSeek API".to_owned(),
+            ProviderTestOutcome::Tls => "DeepSeek API TLS handshake failed".to_owned(),
+            _ => "DeepSeek generation request failed".to_owned(),
+        })?;
+    let status = response.status().as_u16();
+    if !response.status().is_success() {
+        return Err(match status {
+            401 | 403 => "DeepSeek rejected the API key (HTTP authentication failure)".to_owned(),
+            404 => "DeepSeek Chat Completions endpoint or model was not found (HTTP 404)".to_owned(),
+            429 => "DeepSeek rate limit or quota reached (HTTP 429)".to_owned(),
+            _ => format!("DeepSeek generation request returned HTTP {status}"),
+        });
+    }
+    let body = response
+        .body_mut()
+        .with_config()
+        .limit(64 * 1024)
+        .read_to_string()
+        .map_err(|_| "DeepSeek returned an unreadable response".to_owned())?;
+    let preview = parse_deepseek_generation(&body)?;
+    Ok((status, preview))
+}
+
+fn deepseek_generation_url(provider: &AiProvider) -> Result<String, String> {
+    let base = provider.base_url.trim().trim_end_matches('/');
+    if !(base.starts_with("https://") || base.starts_with("http://")) {
+        return Err("Invalid DeepSeek API endpoint".into());
+    }
+    Ok(if provider.full_url || base.ends_with("/chat/completions") {
+        base.to_owned()
+    } else {
+        format!("{base}/chat/completions")
+    })
+}
+
+fn parse_deepseek_generation(body: &str) -> Result<String, String> {
+    let value: serde_json::Value =
+        serde_json::from_str(body).map_err(|_| "DeepSeek returned invalid JSON".to_owned())?;
+    let content = value
+        .get("choices")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|choices| choices.first())
+        .and_then(|choice| choice.get("message"))
+        .and_then(|message| message.get("content"))
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| "DeepSeek response did not contain a text completion".to_owned())?;
+    let preview: String = content.chars().take(240).collect();
+    if preview.trim().is_empty() {
+        return Err("DeepSeek returned an empty completion".into());
+    }
+    Ok(preview)
+}
+
+#[cfg(test)]
+mod deepseek_generation_tests {
+    use super::*;
+
+    #[test]
+    fn deepseek_generation_url_respects_base_url_and_explicit_full_url() {
+        let mut provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-probe");
+        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://api.deepseek.com/chat/completions");
+        provider.base_url = "https://proxy.example/v1".into();
+        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://proxy.example/v1/chat/completions");
+        provider.base_url = "https://proxy.example/custom".into();
+        provider.full_url = true;
+        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://proxy.example/custom");
+    }
+
+    #[test]
+    fn deepseek_generation_parser_requires_nonempty_text_completion() {
+        assert_eq!(
+            parse_deepseek_generation(r#"{"choices":[{"message":{"content":"PEBREL_API_OK"}}]}"#).unwrap(),
+            "PEBREL_API_OK"
+        );
+        assert!(parse_deepseek_generation(r#"{"choices":[]}"#).is_err());
+        assert!(parse_deepseek_generation(r#"{"choices":[{"message":{"content":""}}]}"#).is_err());
+    }
 }
 
 #[cfg(feature = "legacy-shell")]
