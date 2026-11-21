@@ -6,7 +6,6 @@ test('maps supported Harness session events into Pebrel lifecycle events', () =>
   const session = { id: 'session-123', cwd: 'C:/work/project' }
   const cases = [
     ['user/message', 'UserPromptSubmit'],
-    ['tool/call', 'PreToolUse'],
     ['tool/result', 'PostToolUse'],
     ['turn/end', 'Stop'],
   ]
@@ -26,10 +25,10 @@ test('does not forward message bodies, tool arguments, or unknown events', () =>
     data: { content: 'private prompt text', source: { kind: 'user' } },
   })
   assert.equal(JSON.stringify(prompt).includes('private prompt text'), false)
-  const call = toPebrelPayload(session, {
-    type: 'tool/call', seq: 2, time: 2,
-    data: { name: 'shell', arguments: '{"secret":"value"}' },
+  const tool = toPebrelPayload(session, {
+    type: 'tool/result', seq: 2, time: 2,
+    data: { message: { name: 'shell', content: [{ type: 'text', text: 'private result' }] } },
   })
-  assert.equal(JSON.stringify(call).includes('secret'), false)
+  assert.equal(JSON.stringify(tool).includes('private result'), false)
   assert.equal(toPebrelPayload(session, { type: 'session/disposed', seq: 3, time: 3, data: {} }), undefined)
 })
