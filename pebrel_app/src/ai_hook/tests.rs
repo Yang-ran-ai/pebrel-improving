@@ -560,6 +560,19 @@ fn claude_style_agents_share_the_lifecycle_under_their_own_source() {
         assert!(parse(r#"{"hookEventName":"Stop","sessionId":"x"}"#).is_none());
         let camel = parse(r#"{"hook_event_name":"Stop","sessionId":"x"}"#).unwrap();
         assert_eq!(camel.session_id, None);
-        assert!(capabilities_for(source).attention_context);
+        if source != "deepseek-harness" {
+            assert!(capabilities_for(source).attention_context);
+        }
     }
+}
+
+#[test]
+fn deepseek_harness_hook_capabilities_match_the_events_the_bridge_emits() {
+    let capabilities = capabilities_for("deepseek-harness");
+    assert!(capabilities.lifecycle);
+    assert!(!capabilities.attention_events);
+    assert!(!capabilities.attention_context);
+    assert!(!capabilities.background_tasks);
+    assert!(capabilities.bridge_sequence);
+    assert!(capabilities.serialized_delivery);
 }
