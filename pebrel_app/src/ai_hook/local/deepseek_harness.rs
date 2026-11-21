@@ -325,7 +325,7 @@ pub(crate) fn install_hook() -> std::io::Result<()> {
     }
     if state.desktop_running {
         return Err(std::io::Error::other(
-            "Quit DeepSeek Harness Desktop before installing or removing its profile plugin.",
+            "Quit DeepSeek Harness Desktop from its tray menu before installing or removing its profile plugin; closing the window only hides it.",
         ));
     }
     if !state.profile_initialized {
@@ -403,7 +403,7 @@ pub(crate) fn launch_desktop() -> std::io::Result<()> {
 pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     let state = inspect();
     if state.desktop_running {
-        return Err(std::io::Error::other("Quit DeepSeek Harness Desktop before uninstalling it."));
+        return Err(std::io::Error::other("Quit DeepSeek Harness Desktop from its tray menu before uninstalling it; closing the window only hides it."));
     }
     let executable = state.desktop_executable.ok_or_else(|| {
         std::io::Error::other("DeepSeek Harness Desktop is not installed.")
