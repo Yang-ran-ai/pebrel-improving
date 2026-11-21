@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { toPebrelPayload } from './index.js'
+import { apply, toPebrelPayload } from './index.js'
 
 const session = { id: 'session-42', cwd: 'C:/work/project' }
 
@@ -59,4 +59,21 @@ test('ignores unsupported and malformed events instead of inventing session iden
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: -1, time: 1 }), undefined)
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: 1, time: Infinity }), undefined)
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: 1, time: -1 }), undefined)
+})
+
+test('does not throw into Cordis for malformed session/event callbacks', () => {
+  let listener
+  const context = {
+    logger: { warn() {} },
+    on(name, callback) {
+      assert.equal(name, 'session/event')
+      listener = callback
+    },
+  }
+  apply(context, { helperPath: '/absolute/pebrel-hook.exe' })
+  assert.equal(typeof listener, 'function')
+  assert.doesNotThrow(() => listener(null, { type: 'turn/end' }))
+  assert.doesNotThrow(() => listener({}, { type: 'turn/end' }))
+  assert.doesNotThrow(() => listener(session, null))
+  assert.doesNotThrow(() => listener(session, { type: 42 }))
 })
