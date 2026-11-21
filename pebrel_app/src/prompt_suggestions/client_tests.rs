@@ -147,30 +147,53 @@ fn deepseek_messages_protocol_sends_the_expected_route_and_api_key_header() {
         let (mut stream, _) = listener.accept().unwrap();
         stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
         let mut bytes = Vec::new();
-        let mut buf = [0; 1024];
+        let mut buffer = [0; 1024];
         loop {
-            let count = stream.read(&mut buf).unwrap();
+            let count = stream.read(&mut buffer).unwrap();
             assert_ne!(count, 0);
-            bytes.extend_from_slice(&buf[..count]);
-            if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+            bytes.extend_from_slice(&buffer[..count]);
+            if let Some(end) = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n") {
                 let headers = String::from_utf8_lossy(&bytes[..end]);
-                let length: usize = headers.lines().find_map(|line| {
-                    let (name, value) = line.split_once(':')?;
-                    name.eq_ignore_ascii_case("content-length")
-                        .then(|| value.trim().parse().unwrap())
-                }).unwrap();
-                if bytes.len() >= end + 4 + length { break; }
+                let length: usize = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse().unwrap())
+                    })
+                    .unwrap();
+                if bytes.len() >= end + 4 + length {
+                    break;
+                }
             }
         }
         let request = String::from_utf8_lossy(&bytes);
         assert!(request.starts_with("POST /anthropic/v1/messages HTTP/1.1"));
-        assert!(request.to_ascii_lowercase().contains("x-api-key: synthetic-test-key"));
-        assert!( !request.to_ascii_lowercase().contains("authorization: bearer"));
-        assert!(request.contains("\"max_tokens\":512"));
-        let body = json!({"stop_reason":"end_turn","content":[
-            {"type":"text","text":"{\"suggestion\":\"DeepSeek Messages 已真实返回\"}"}
-        ]}).to_string();
-        write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+        assert!(
+            request
+                .to_ascii_lowercase()
+                .contains("x-api-key: synthetic-test-key")
+        );
+        assert!(
+            !request
+                .to_ascii_lowercase()
+                .contains("authorization: bearer")
+        );
+        assert!(request.contains("\\\"max_tokens\\\":512"));
+        let body = json!({
+            "stop_reason":"end_turn",
+            "content":[{
+                "type":"text",
+                "text":"{\\\"suggestion\\\":\\\"DeepSeek Messages 已真实返回\\\"}"
+            }]
+        })
+        .to_string();
+        write!(
+            stream,
+            "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{body}",
+            body.len()
+        )
+        .unwrap();
     });
     let client = PreparedClient {
         provider: target,
