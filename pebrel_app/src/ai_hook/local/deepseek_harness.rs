@@ -515,6 +515,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn uninstaller_discovery_walks_up_versioned_install_layouts() {
+        let directory = tempfile::tempdir().unwrap();
+        let versioned = directory.path().join("app-1.2.3");
+        std::fs::create_dir_all(&versioned).unwrap();
+        let executable = versioned.join("DeepSeek Harness.exe");
+        std::fs::write(&executable, b"fixture").unwrap();
+        let uninstaller = directory.path().join("Uninstall DeepSeek Harness.exe");
+        std::fs::write(&uninstaller, b"fixture").unwrap();
+        assert_eq!(find_uninstaller(&executable), Some(uninstaller));
+    }
+
+    #[test]
     fn profile_bridge_presence_requires_both_dependency_and_bundle_layer() {
         let directory = tempfile::tempdir().unwrap();
         let bridge = directory.path().join("bridge");
