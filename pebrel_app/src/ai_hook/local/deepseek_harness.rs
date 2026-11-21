@@ -10,6 +10,8 @@ use std::process::{Command, Stdio};
 
 const BUNDLE_NAME: &str = "@pebrel/deepseek-harness-bridge";
 const DOWNLOAD_PAGE: &str = "https://github.com/deepseek-ai/deepseek-harness/releases/latest";
+// Upstream fixed production download documented in apps/desktop/publishing.
+const WINDOWS_INSTALLER_URL: &str = "https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe";
 
 const BRIDGE_JS: &str =
     include_str!("../../../../integrations/deepseek-harness-bridge/index.js");
@@ -319,6 +321,58 @@ pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     .ok_or_else(|| std::io::Error::other("The DeepSeek Harness uninstaller was not found."))?;
     Command::new(uninstaller).spawn()?;
     Ok(())
+}
+
+pub(crate) fn install_desktop() -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        use std::io::{Read as _, Write as _};
+
+        let directory = pebrel_settings::settings_dir().join("downloads");
+        std::fs::create_dir_all(&directory)?;
+        let partial = directory.join("deepseek-harness-windows-x64.exe.part");
+        let installer = directory.join("deepseek-harness-windows-x64.exe");
+
+        let download = (|| -> std::io::Result<()> {
+            let mut response = ureq::get(WINDOWS_INSTALLER_URL)
+                .call()
+                .map_err(|error| std::io::Error::other(format!(
+                    "Could not download the official DeepSeek Harness installer: {error}"
+                )))?;
+            let mut file = std::fs::File::create(&partial)?;
+            let mut reader = response.body_mut().as_reader();
+            std::io::copy(&mut reader, &mut file)?;
+            file.flush()?;
+            file.sync_all()?;
+
+            let size = file.metadata()?.len();
+            if !(50_000_000..=1_000_000_000).contains(&size) {
+                return Err(std::io::Error::other(format!(
+                    "The downloaded installer has an unexpected size ({size} bytes); it was not run."
+                )));
+            }
+            let mut signature = [0u8; 2];
+            std::fs::File::open(&partial)?.read_exact(&mut signature)?;
+            if signature != *b"MZ" {
+                return Err(std::io::Error::other(
+                    "The downloaded file is not a Windows executable; it was not run."
+                ));
+            }
+            std::fs::rename(&partial, &installer)?;
+            Ok(())
+        })();
+
+        if let Err(error) = download {
+            let _ = std::fs::remove_file(&partial);
+            return Err(error);
+        }
+        Command::new(installer).spawn()?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        open_download_page()
+    }
 }
 
 pub(crate) fn open_download_page() -> std::io::Result<()> {
