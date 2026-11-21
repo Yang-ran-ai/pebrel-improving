@@ -513,6 +513,7 @@ impl SettingsPane {
 fn can_toggle(row: &AgentIntegration) -> bool {
     crate::platform::CAPABILITIES.ai_hook_server
         && row.hook.is_some()
+        && (row.agent != AgentKind::DeepSeekHarness || !row.inspection.desktop_running)
         && (row.inspection.installed
             || (row.executable.is_some()
                 && row.inspection.available
