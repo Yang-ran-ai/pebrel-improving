@@ -56,7 +56,7 @@ impl SettingsPane {
     }
 
     fn test_provider_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.provider_test_running || self.provider_ui.write_task.is_some() || self.provider_ui.loading_auth {
+        if self.provider_test_running || self.provider_ui.fetching || self.provider_ui.write_task.is_some() || self.provider_ui.loading_auth {
             return;
         }
         let provider = match self.provider_draft(cx) {
@@ -361,7 +361,7 @@ impl SettingsPane {
                                     )
                                     .tooltip(language.text(Message::ProvidersFetch))
                                     .loading(self.provider_ui.fetching)
-                                    .disabled(self.provider_ui.fetching || busy)
+                                    .disabled(self.provider_ui.fetching || busy || self.provider_test_running)
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.fetch_provider_models(window, cx)
                                     })),
@@ -651,7 +651,7 @@ impl SettingsPane {
                     .flex_shrink_0()
                     .child(
                         Button::new("provider-delete")
-                            .disabled(busy)
+                            .disabled(busy || self.provider_test_running)
                             .ghost()
                             .text_color(theme.danger)
                             .label(language.text(Message::ProvidersDeleteNode))
@@ -695,7 +695,7 @@ impl SettingsPane {
                             )
                             .child(
                                 Button::new("provider-save")
-                                    .disabled(busy)
+                                    .disabled(busy || self.provider_test_running)
                                     .loading(self.provider_ui.write_task.is_some())
                                     .primary()
                                     .label(language.text(Message::ProvidersSave))
