@@ -706,6 +706,9 @@ mod tests {
     fn provider_test_urls_follow_each_protocol() {
         let openai = AiProvider::preset(ProviderKind::OpenAi, "openai");
         assert_eq!(test_url(&openai).unwrap(), "https://api.openai.com/v1/models");
+        let deepseek = AiProvider::preset(ProviderKind::DeepSeek, "deepseek");
+        assert_eq!(test_url(&deepseek).unwrap(), "https://api.deepseek.com/models");
+        assert!(deepseek.kind.uses_openai_protocol());
         let azure = AiProvider::preset(ProviderKind::AzureOpenAi, "azure");
         assert!(test_url(&azure).unwrap().contains("/openai/models?api-version="));
     }
