@@ -247,9 +247,12 @@ fn write_owned_bundle() -> std::io::Result<()> {
 fn run_dsh(cli: &Path, arguments: &[&str]) -> std::io::Result<()> {
     #[cfg(windows)]
     {
-        let extension_is_cmd = cli.extension().is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("cmd") || extension.eq_ignore_ascii_case("bat")
-        });
+        let extension_is_cmd = cli
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .is_some_and(|extension| {
+                extension.eq_ignore_ascii_case("cmd") || extension.eq_ignore_ascii_case("bat")
+            });
         if extension_is_cmd {
             // Windows command scripts must be invoked through cmd.exe. The only
             // interpolated values are absolute filesystem paths, quoted as one argv.
@@ -325,6 +328,11 @@ pub(crate) fn remove_hook() -> std::io::Result<()> {
     run_dsh(&cli, &["plugin", "--profile", "desktop", "remove", BUNDLE_NAME])?;
     if inspect().hook_installed {
         return Err(std::io::Error::other("The DeepSeek Harness bridge remains in the Desktop profile."));
+    }
+    match std::fs::remove_dir_all(bridge_directory()) {
+        Ok(()) => {},
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+        Err(error) => return Err(error),
     }
     Ok(())
 }
@@ -428,6 +436,7 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
                     "The downloaded file is not a Windows executable; it was not run."
                 ));
             }
+            drop(file);
             if installer.exists() {
                 std::fs::remove_file(&installer)?;
             }
