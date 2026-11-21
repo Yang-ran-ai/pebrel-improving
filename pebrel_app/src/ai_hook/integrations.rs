@@ -106,6 +106,10 @@ pub(crate) fn executable(agent: AgentKind) -> Option<PathBuf> {
     find_executable(agent, &executable_directories())
 }
 
+pub(crate) fn install_deepseek_harness_desktop() -> Result<(), String> {
+    super::local::install_deepseek_harness_desktop().map_err(|error| error.to_string())
+}
+
 pub(crate) fn launch_deepseek_harness() -> Result<(), String> {
     super::local::launch_deepseek_harness().map_err(|error| error.to_string())
 }
