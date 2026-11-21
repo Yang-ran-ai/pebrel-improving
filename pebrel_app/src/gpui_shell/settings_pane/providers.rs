@@ -25,6 +25,18 @@ mod protocol_tests {
             ProviderKind::DeepSeek
         );
         assert_eq!(
+            provider_kind_for_protocol(ProviderKind::DeepSeek, ProviderKind::Custom),
+            ProviderKind::DeepSeek
+        );
+        assert_eq!(
+            provider_kind_for_protocol(ProviderKind::DeepSeek, ProviderKind::Anthropic),
+            ProviderKind::DeepSeek
+        );
+        assert_eq!(
+            provider_kind_for_protocol(ProviderKind::DeepSeek, ProviderKind::Google),
+            ProviderKind::Google
+        );
+        assert_eq!(
             provider_kind_for_protocol(ProviderKind::Custom, ProviderKind::OpenAi),
             ProviderKind::OpenAi
         );
@@ -122,7 +134,9 @@ pub(super) fn default_wire_api(kind: ProviderKind) -> &'static str {
 /// A protocol choice must not erase a provider's identity when it already
 /// implements that wire format (notably DeepSeek's OpenAI-compatible Chat API).
 fn provider_kind_for_protocol(current: ProviderKind, selected: ProviderKind) -> ProviderKind {
-    if current == ProviderKind::DeepSeek && selected == ProviderKind::OpenAi {
+    if current == ProviderKind::DeepSeek
+        && matches!(selected, ProviderKind::Custom | ProviderKind::OpenAi | ProviderKind::Anthropic)
+    {
         ProviderKind::DeepSeek
     } else {
         selected
