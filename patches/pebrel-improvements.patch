@@ -28,3 +28,57 @@ index 953c296..16a54ac 100644
      "copy_source": "复制原文",
      "attention": "终端需要你处理输入或审批；点击「终端」返回。",
      "newer_answer": "已收到新回答；本页不跳动，返回终端再点「阅读」查看。",
+
+
+diff --git a/pebrel_app/src/gpui_shell/terminal/answer_reader.rs b/pebrel_app/src/gpui_shell/terminal/answer_reader.rs
+--- a/pebrel_app/src/gpui_shell/terminal/answer_reader.rs
++++ b/pebrel_app/src/gpui_shell/terminal/answer_reader.rs
+@@ -424,20 +424,34 @@
+                             language.format(Message::ReaderTitle, &[("provider", provider)]),
+                         ))
+                         .child(
+-                            Button::new("reader-source")
+-                                .debug_selector(|| "reader-source".into())
+-                                .label(language.text(if self.raw_mode {
+-                                    Message::ReaderRead
+-                                } else {
+-                                    Message::ReaderSource
+-                                }))
+-                                .ghost()
+-                                .small()
+-                                .disabled(!has_source)
+-                                .on_click(cx.listener(|reader, _, _, cx| {
+-                                    reader.raw_mode = !reader.raw_mode;
+-                                    cx.notify();
+-                                })),
++                            h_flex()
++                                .gap_1()
++                                .child(
++                                    Button::new("reader-mode-markdown")
++                                        .debug_selector(|| "reader-source".into())
++                                        .label("Markdown")
++                                        .ghost()
++                                        .small()
++                                        .toggled(!self.raw_mode)
++                                        .disabled(!has_source)
++                                        .on_click(cx.listener(|reader, _, _, cx| {
++                                            reader.raw_mode = false;
++                                            cx.notify();
++                                        })),
++                                )
++                                .child(
++                                    Button::new("reader-mode-native")
++                                        .debug_selector(|| "reader-mode-native".into())
++                                        .label("Native")
++                                        .ghost()
++                                        .small()
++                                        .toggled(self.raw_mode)
++                                        .disabled(!has_source)
++                                        .on_click(cx.listener(|reader, _, _, cx| {
++                                            reader.raw_mode = true;
++                                            cx.notify();
++                                        })),
++                                ),
+                         )
+                         .child(
+                             Button::new("reader-copy")
