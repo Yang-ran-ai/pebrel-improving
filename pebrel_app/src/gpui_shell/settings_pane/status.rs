@@ -61,7 +61,9 @@ impl ProviderStatus {
                 )
                 .into(),
             Self::Testing => language.pick("正在测试连接…", "Testing connection...").into(),
-            Self::TestingGeneration => language.pick("正在发送 DeepSeek 测试请求…", "Sending a DeepSeek test request...").into(),
+            Self::TestingGeneration => language
+                .pick("正在发送 DeepSeek 测试请求…", "Sending a DeepSeek test request...")
+                .into(),
             Self::TestResult { outcome, elapsed_ms } => {
                 format!("{} · {elapsed_ms} ms", language.provider_test_message(outcome))
             },
