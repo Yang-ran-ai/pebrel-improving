@@ -26,6 +26,7 @@ pub(super) struct AgentSettingsState {
     focus: Vec<FocusHandle>,
     #[cfg(all(test, feature = "gpui-test-support"))]
     test_operation: Option<TestOperation>,
+    desktop_feedback: Option<Result<String, String>>,
 }
 
 impl AgentSettingsState {
@@ -39,6 +40,7 @@ impl AgentSettingsState {
             focus: integrations::AGENTS.iter().map(|_| cx.focus_handle().tab_stop(true)).collect(),
             #[cfg(all(test, feature = "gpui-test-support"))]
             test_operation: None,
+            desktop_feedback: None,
         }
     }
 }
@@ -60,6 +62,48 @@ impl SettingsPane {
                 }
                 pane.agents.rows = Some(rows);
                 pane.agents.loading = false;
+                cx.notify();
+            });
+        })
+        .detach();
+        cx.notify();
+    }
+
+    fn deepseek_desktop_action(
+        &mut self,
+        action: DeepSeekDesktopAction,
+        cx: &mut Context<Self>,
+    ) {
+        let agent = AgentKind::DeepSeekHarness;
+        if self.agents.loading || self.agents.busy.is_some() {
+            return;
+        }
+        self.agents.busy = Some(agent);
+        self.agents.desktop_feedback = None;
+        self.agents.sequence = self.agents.sequence.wrapping_add(1);
+        let sequence = self.agents.sequence;
+        let task = cx.background_executor().spawn(async move {
+            let result = match action {
+                DeepSeekDesktopAction::Download => integrations::open_deepseek_harness_download(),
+                DeepSeekDesktopAction::Launch => integrations::launch_deepseek_harness(),
+                DeepSeekDesktopAction::Uninstall => integrations::uninstall_deepseek_harness(),
+            };
+            let message = match action {
+                DeepSeekDesktopAction::Download => "Opened DeepSeek Harness download page".to_owned(),
+                DeepSeekDesktopAction::Launch => "DeepSeek Harness launch requested".to_owned(),
+                DeepSeekDesktopAction::Uninstall => "DeepSeek Harness uninstaller started".to_owned(),
+            };
+            (result.map(|()| message), integrations::inspect())
+        });
+        cx.spawn(async move |this, cx| {
+            let (result, rows) = task.await;
+            let _ = this.update(cx, |pane, cx| {
+                if pane.agents.sequence != sequence {
+                    return;
+                }
+                pane.agents.rows = Some(rows);
+                pane.agents.busy = None;
+                pane.agents.desktop_feedback = Some(result);
                 cx.notify();
             });
         })
