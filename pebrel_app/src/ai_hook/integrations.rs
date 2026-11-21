@@ -6,24 +6,9 @@ use pebrel_settings::AgentHook;
 
 use crate::ai_agents::AgentKind;
 
-pub(crate) const AGENTS: [AgentKind; 16] = [
-    AgentKind::Claude,
-    AgentKind::Codex,
-    AgentKind::OpenCode,
-    AgentKind::Cursor,
-    AgentKind::Kimi,
-    AgentKind::Pi,
-    AgentKind::OhMyPi,
-    AgentKind::Copilot,
-    AgentKind::Grok,
-    AgentKind::Qoder,
-    AgentKind::CodeBuddy,
-    AgentKind::Qwen,
-    AgentKind::Droid,
-    AgentKind::Antigravity,
-    AgentKind::Hermes,
-    AgentKind::DeepSeekHarness,
-];
+/// Show every recognized agent in Settings. Hook-capable clients receive their
+/// protocol-specific toggle; other clients are explicitly process-detection only.
+pub(crate) const AGENTS: [AgentKind; 29] = AgentKind::ALL;
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HookInspection {
@@ -258,6 +243,33 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("claude")).unwrap();
         assert_eq!(find_executable(AgentKind::Claude, &[dir.path().to_path_buf()]), None);
+    }
+
+    #[test]
+    fn agents_page_exposes_all_recognized_clients_and_only_verified_hook_protocols() {
+        assert_eq!(AGENTS, AgentKind::ALL);
+        assert_eq!(
+            AGENTS.iter().filter_map(|agent| hook_for(*agent)).count(),
+            AgentHook::ALL.len()
+        );
+        for agent in [
+            AgentKind::Gemini,
+            AgentKind::Aider,
+            AgentKind::Amp,
+            AgentKind::Goose,
+            AgentKind::Auggie,
+            AgentKind::Hermes,
+            AgentKind::Vibe,
+            AgentKind::Cline,
+            AgentKind::Devin,
+            AgentKind::Kiro,
+            AgentKind::Kilo,
+            AgentKind::Maki,
+            AgentKind::Trae,
+            AgentKind::CommandCode,
+        ] {
+            assert_eq!(hook_for(agent), None, "{} must not claim an unimplemented hook", agent.slug());
+        }
     }
 
     #[test]
