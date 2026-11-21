@@ -564,6 +564,17 @@ fn claude_style_agents_share_the_lifecycle_under_their_own_source() {
         assert!(parse(r#"{"hookEventName":"Stop","sessionId":"x"}"#).is_none());
         let camel = parse(r#"{"hook_event_name":"Stop","sessionId":"x"}"#).unwrap();
         assert_eq!(camel.session_id, None);
+        if source == "deepseek-harness" {
+            let cwd = std::env::temp_dir();
+            let payload = serde_json::json!({
+                "hook_event_name": "Stop",
+                "session_id": "s1",
+                "cwd": cwd.to_string_lossy(),
+            })
+            .to_string();
+            let routed = parse(&payload).unwrap();
+            assert_eq!(routed.answer_cwd.as_deref(), Some(cwd.as_path()));
+        }
         if source != "deepseek-harness" {
             assert!(capabilities_for(source).attention_context);
         }
