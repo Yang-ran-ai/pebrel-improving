@@ -266,6 +266,7 @@ impl SettingsPane {
                 (agent == AgentKind::DeepSeekHarness)
                     .then(|| self.agents.desktop_feedback.as_ref())
                     .flatten()
+                    .filter(|_| !state.desktop_running)
                     .map(|result| match result {
                         Ok(message) => message.clone(),
                         Err(error) => language.format(Message::SettingsAgentsFailed, &[("error", error)]),
@@ -454,7 +455,7 @@ impl SettingsPane {
                         .gap_1()
                         .when(!state.desktop_installed, |actions| {
                             actions.child(
-                                Button::new("deepseek-desktop-download")
+                                Button::new("deepseek-desktop-install")
                                     .ghost()
                                     .small()
                                     .label("Install")
