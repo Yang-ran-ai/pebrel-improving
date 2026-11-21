@@ -14,6 +14,7 @@ mod codex_notify;
 mod config_guard;
 mod cursor;
 mod extended;
+mod deepseek_harness;
 mod kimi;
 mod managed_files;
 mod runtime_skills;
