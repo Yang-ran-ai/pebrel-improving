@@ -18,7 +18,7 @@ export function toPebrelPayload(session, event) {
   // Never manufacture "undefined" IDs or serialize NaN timestamps as null.
   if (session.id == null || String(session.id).trim() === '') return undefined
   if (!Number.isSafeInteger(event.seq) || event.seq < 0) return undefined
-  if (!Number.isFinite(event.time) || event.time < 0) return undefined
+  if (!Number.isSafeInteger(event.time) || event.time < 0) return undefined
 
   const data = event.data ?? {}
   const payload = {
