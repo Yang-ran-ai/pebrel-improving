@@ -275,7 +275,7 @@ fn find_uninstaller(executable: &Path) -> Option<PathBuf> {
     executable
         .parent()?
         .ancestors()
-        .take(5)
+        .take(2)
         .find_map(|directory| NAMES.iter().map(|name| directory.join(name)).find(|path| path.is_file()))
 }
 
