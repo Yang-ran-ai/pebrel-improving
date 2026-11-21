@@ -29,11 +29,18 @@ fn deepseek_real_requests_follow_all_three_selected_protocols() {
         assert_eq!(url, format!("https://api.deepseek.com{route}"));
         assert_eq!(body["model"], "deepseek-flash");
         match wire {
-            "Responses" => assert!(body.get("input").is_some()),
-            "Chat Completions" => assert!(body.get("messages").is_some()),
+            "Responses" => {
+                assert!(body.get("input").is_some());
+                assert_eq!(body["reasoning"]["effort"], "none");
+            },
+            "Chat Completions" => {
+                assert!(body.get("messages").is_some());
+                assert_eq!(body["thinking"]["type"], "disabled");
+            },
             "Claude Messages" => {
                 assert!(body.get("messages").is_some());
                 assert_eq!(body["max_tokens"], 512);
+                assert_eq!(body["reasoning"]["effort"], "none");
             },
             _ => unreachable!(),
         }
