@@ -26,8 +26,16 @@ export function toPebrelPayload(session, event) {
     event_id: `dsh-${String(session.id)}-${event.seq}`,
     bridge_sequence: Number(event.seq),
     occurred_at_ms: Number(event.time),
-    cwd: typeof session.cwd === 'string' ? session.cwd : process.cwd(),
     source: 'deepseek-harness',
+  }
+
+  // cwd is a routing hint for Pebrel when this Desktop process was not launched
+  // from a specific Pane. Never substitute the Desktop install directory.
+  if (
+    typeof session.cwd === 'string'
+    && (isAbsolute(session.cwd) || /^[A-Za-z]:[\\/]/.test(session.cwd) || /^\\\\/.test(session.cwd))
+  ) {
+    payload.cwd = session.cwd
   }
 
   if (event.type === 'tool/result') {
