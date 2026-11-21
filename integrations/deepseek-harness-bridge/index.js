@@ -13,6 +13,12 @@ export function toPebrelPayload(session, event) {
   const hookEvent = EVENT_MAP.get(event.type)
   if (!hookEvent) return undefined
 
+  // Harness event identity is the deduplication and ordering boundary in Pebrel.
+  // Never manufacture "undefined" IDs or serialize NaN timestamps as null.
+  if (session?.id == null || String(session.id).trim() === '') return undefined
+  if (!Number.isSafeInteger(event.seq) || event.seq < 0) return undefined
+  if (!Number.isFinite(event.time) || event.time < 0) return undefined
+
   const data = event.data ?? {}
   const payload = {
     hook_event_name: hookEvent,
