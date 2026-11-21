@@ -11,6 +11,60 @@ fn provider(wire: &str) -> AiProvider {
 }
 
 #[test]
+fn deepseek_real_requests_follow_all_three_selected_protocols() {
+    let messages = [Message { role: "user".into(), text: "测试真实模型请求".into() }];
+    for (wire, route) in [
+        ("Responses", "/responses"),
+        ("Chat Completions", "/chat/completions"),
+        ("Claude Messages", "/anthropic/v1/messages"),
+    ] {
+        let mut target = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-client-test");
+        target.enabled = true;
+        target.wire_api = wire.into();
+        assert!(supported(&target), "{wire} must be a supported DeepSeek protocol");
+        let (url, body) = payload(&target, "zh-CN", &messages, "").unwrap();
+        assert_eq!(url, format!("https://api.deepseek.com{route}"));
+        assert_eq!(body["model"], "deepseek-flash");
+        match wire {
+            "Responses" => assert!(body.get("input").is_some()),
+            "Chat Completions" => assert!(body.get("messages").is_some()),
+            "Claude Messages" => {
+                assert!(body.get("messages").is_some());
+                assert_eq!(body["max_tokens"], 512);
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[test]
+fn deepseek_response_decoders_match_the_selected_wire_protocol() {
+    let mut target = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-response-test");
+    for (wire, response) in [
+        (
+            "Responses",
+            json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}),
+        ),
+        (
+            "Chat Completions",
+            json!({"choices":[{"finish_reason":"stop","message":{"content":"chat ok","refusal":null}}]}),
+        ),
+        (
+            "Claude Messages",
+            json!({"stop_reason":"end_turn","content":[{"type":"text","text":"messages ok"}]}),
+        ),
+    ] {
+        target.wire_api = wire.into();
+        assert_eq!(response_text(&target, &response).as_deref(), Some(match wire {
+            "Responses" => "responses ok",
+            "Chat Completions" => "chat ok",
+            "Claude Messages" => "messages ok",
+            _ => unreachable!(),
+        }));
+    }
+}
+
+#[test]
 fn partial_refused_and_ambiguous_responses_never_become_drafts() {
     let provider = provider("responses");
     let text = r#"{"suggestion":"跑一下中文输入测试"}"#;
