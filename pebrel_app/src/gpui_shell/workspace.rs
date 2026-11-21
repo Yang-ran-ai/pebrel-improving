@@ -110,7 +110,7 @@ pub(crate) use update_dialog::{open_update_dialog, show_update_notification};
 use tab_drag::{DockTarget, TabDrag, TabDragAxis};
 
 #[cfg(test)]
-use agents::ai_hook_target_pane;
+use agents::{ai_hook_target_pane, ai_hook_target_pane_for_cwd};
 use agents::{ai_session_palette_rows, restored_agent_command};
 
 gpui::actions!(
