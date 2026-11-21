@@ -30,9 +30,12 @@ jobs:
       - name: Checkout pinned Pebrel source snapshot
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.SOURCE_REPOSITORY }}
-          ref: ${{ env.SOURCE_REVISION }}
+          repository: Yang-ran-ran/pebrel-custom
+          ref: 8b8a4e50d4630a2a83b2e968250bac46c22fd263
           path: source
+      - name: Apply repository customization patch
+        shell: pwsh
+        run: git -C source apply ../patches/pebrel-improvements.patch
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
