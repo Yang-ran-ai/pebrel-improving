@@ -73,7 +73,7 @@ fn bridge_directory() -> PathBuf {
         .join("deepseek-harness-bridge")
 }
 
-fn desktop_executable() -> Option<PathBuf> {
+pub(crate) fn desktop_executable() -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Some(local) = std::env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local);
