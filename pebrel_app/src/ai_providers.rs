@@ -1008,7 +1008,7 @@ mod tests {
                 "Responses",
                 "/responses",
                 "authorization: bearer",
-                "\\"reasoning\\":{\\"effort\\":\\"none\\"}",
+                "\"reasoning\":{\"effort\":\"none\"}",
                 r#"{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}"#,
             ),
             (
@@ -1022,7 +1022,7 @@ mod tests {
                 "Claude Messages",
                 "/anthropic/v1/messages",
                 "x-api-key: test-deepseek-key",
-                "\\"reasoning\\":{\\"effort\\":\\"none\\"}",
+                "\"reasoning\":{\"effort\":\"none\"}",
                 r#"{"content":[{"type":"text","text":"messages ok"}]}"#,
             ),
         ];
