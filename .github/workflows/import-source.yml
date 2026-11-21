@@ -1,0 +1,48 @@
+name: Import Pebrel source into this repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/import-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Checkout pinned Pebrel source
+        uses: actions/checkout@v4
+        with:
+          repository: Yang-ran-ran/pebrel-custom
+          ref: 8b8a4e50d4630a2a83b2e968250bac46c22fd263
+          path: source
+      - name: Apply customizations and import complete source tree
+        shell: pwsh
+        run: |
+          git -C source apply ../patches/pebrel-improvements.patch
+          Get-ChildItem source -Force |
+            Where-Object { $_.Name -notin @('.git', '.github') } |
+            Copy-Item -Destination $env:GITHUB_WORKSPACE -Recurse -Force
+          if (-not (Test-Path 'pebrel_app/Cargo.toml')) { throw 'Pebrel source import did not produce the Rust workspace.' }
+          if (-not (Test-Path 'pebrel_hook/Cargo.toml')) { throw 'Pebrel hook source is missing after import.' }
+      - name: Commit imported source to main
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Source tree is already up to date.'
+            exit 0
+          }
+          git commit -m 'Import Pebrel source into the standalone development repository'
+          git push origin HEAD:main
