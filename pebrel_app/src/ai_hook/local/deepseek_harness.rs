@@ -583,7 +583,7 @@ mod tests {
         assert_eq!(inspect_manifest(&manifest, &bridge), (true, true));
 
         let without_layer = serde_json::json!({
-            "dependencies": { BUNDLE_NAME: "link:bridge" },
+            "dependencies": { "@pebrel/deepseek-harness-bridge": "link:bridge" },
             "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base"] } }
         });
         std::fs::write(&manifest, serde_json::to_vec(&without_layer).unwrap()).unwrap();
