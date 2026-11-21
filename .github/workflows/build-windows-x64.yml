@@ -9,6 +9,12 @@ on:
       - "source"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "rustfmt.toml"
+      - "rust-toolchain.toml"
+      - ".cargo/**"
+      - "mobile/link/**"
+      - "third_party/**"
+      - "integrations/**"
       - "pebrel_app/**"
       - "pebrel_settings/**"
       - "pebrel_hook/**"
@@ -65,6 +71,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Validate Cargo workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1
       - name: Install pinned nightly rustfmt
         uses: dtolnay/rust-toolchain@master
         with:
