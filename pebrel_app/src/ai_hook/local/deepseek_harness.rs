@@ -256,11 +256,12 @@ fn run_dsh(cli: &Path, arguments: &[&str]) -> std::io::Result<()> {
         if extension_is_cmd {
             // Windows command scripts must be invoked through cmd.exe. The only
             // interpolated values are absolute filesystem paths, quoted as one argv.
-            let mut command_line = format!("\"{}\"", cli.display());
+            let mut command_line = format!("\"\"{}\"", cli.display());
             for argument in arguments {
                 command_line.push(' ');
                 command_line.push_str(&format!("\"{}\"", argument.replace('"', "\"\"")));
             }
+            command_line.push('"');
             let status = Command::new("cmd.exe")
                 .args(["/D", "/S", "/C"])
                 .arg(command_line)
