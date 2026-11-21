@@ -647,7 +647,7 @@ mod tests {
                 assert_eq!(cx.read_from_clipboard().unwrap().text().as_deref(), Some(source))
             });
             let previous_mode = reader.read_with(cx, |reader, _| reader.raw_mode);
-            let toggle = cx.debug_bounds("reader-source").unwrap();
+            let toggle = cx.debug_bounds("reader-mode-markdown").unwrap();
             cx.simulate_click(toggle.center(), gpui::Modifiers::default());
             assert_ne!(reader.read_with(cx, |reader, _| reader.raw_mode), previous_mode);
             cx.update(|window, cx| {
