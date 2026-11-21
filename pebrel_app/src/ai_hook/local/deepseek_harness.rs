@@ -244,6 +244,41 @@ fn write_owned_bundle() -> std::io::Result<()> {
     Ok(())
 }
 
+#[cfg(windows)]
+fn verify_windows_installer(installer: &Path) -> std::io::Result<()> {
+    // An official download URL and an MZ header do not authenticate an
+    // executable. Require a valid Authenticode signature from DeepSeek.
+    let output = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$signature = Get-AuthenticodeSignature -LiteralPath $env:PEBREL_INSTALLER; if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch '(?i)DeepSeek') { exit 1 }",
+        ])
+        .env("PEBREL_INSTALLER", installer)
+        .output()?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(
+            "The downloaded installer does not have a valid DeepSeek Authenticode signature; it was not run.",
+        ))
+    }
+}
+
+fn find_uninstaller(executable: &Path) -> Option<PathBuf> {
+    const NAMES: &[&str] = &[
+        "Uninstall DeepSeek Harness.exe",
+        "unins000.exe",
+        "uninstall.exe",
+    ];
+    executable
+        .parent()?
+        .ancestors()
+        .take(5)
+        .find_map(|directory| NAMES.iter().map(|name| directory.join(name)).find(|path| path.is_file()))
+}
+
 fn run_dsh(cli: &Path, arguments: &[&str]) -> std::io::Result<()> {
     #[cfg(windows)]
     {
@@ -374,18 +409,13 @@ pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     let executable = state.desktop_executable.ok_or_else(|| {
         std::io::Error::other("DeepSeek Harness Desktop is not installed.")
     })?;
-    let root = executable.parent().ok_or_else(|| {
-        std::io::Error::other("Could not resolve the DeepSeek Harness installation directory.")
-    })?;
-    let uninstaller = [
-        "Uninstall DeepSeek Harness.exe",
-        "unins000.exe",
-        "uninstall.exe",
-    ]
-    .into_iter()
-    .map(|name| root.join(name))
-    .find(|path| path.is_file())
-    .ok_or_else(|| std::io::Error::other("The DeepSeek Harness uninstaller was not found."))?;
+    // Electron/NSIS layouts may keep the executable in a versioned
+    // subdirectory while placing the uninstaller higher in the install tree.
+    let uninstaller = find_uninstaller(&executable)
+        .ok_or_else(|| std::io::Error::other("The DeepSeek Harness uninstaller was not found."))?;
+    // Find the uninstaller before removing the profile plugin so a missing
+    // setup component cannot leave the profile half-uninstalled.
+    remove_hook()?;
     let status = Command::new(uninstaller).status()?;
     if status.success() {
         Ok(())
@@ -438,6 +468,7 @@ pub(crate) fn install_desktop() -> std::io::Result<()> {
                 ));
             }
             drop(file);
+            verify_windows_installer(&partial)?;
             if installer.exists() {
                 std::fs::remove_file(&installer)?;
             }
