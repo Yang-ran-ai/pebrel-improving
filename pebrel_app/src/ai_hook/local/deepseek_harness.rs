@@ -201,12 +201,13 @@ fn inspect_manifest(path: &Path, bridge_dir: &Path) -> (bool, bool) {
         .and_then(|profile| profile.get("bundles"))
         .and_then(Value::as_array)
         .is_some_and(|bundles| bundles.iter().any(|value| value.as_str() == Some(BUNDLE_NAME)));
-    let installed = dependency && bundle;
+    let installed = dependency || bundle;
     let file_matches = |name: &str, expected: &str| {
         std::fs::read_to_string(bridge_dir.join(name))
             .is_ok_and(|actual| actual == expected)
     };
-    let current = installed
+    let current = dependency
+        && bundle
         && file_matches("index.js", BRIDGE_JS)
         && file_matches("package.json", BRIDGE_PACKAGE)
         && file_matches("cordis.patch.yml", BRIDGE_PATCH);
@@ -480,6 +481,6 @@ mod tests {
             "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base"] } }
         });
         std::fs::write(&manifest, serde_json::to_vec(&without_layer).unwrap()).unwrap();
-        assert_eq!(inspect_manifest(&manifest, &bridge), (false, false));
+        assert_eq!(inspect_manifest(&manifest, &bridge), (true, false));
     }
 }
