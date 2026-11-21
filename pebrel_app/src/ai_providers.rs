@@ -432,6 +432,10 @@ fn test_url(provider: &AiProvider) -> Result<String, ProviderTestOutcome> {
             let resource = base.strip_suffix("/openai/deployments").unwrap_or(base);
             format!("{resource}/openai/models?api-version=2024-10-21")
         },
+        ProviderKind::DeepSeek => {
+            let root = base.strip_suffix("/anthropic").unwrap_or(base);
+            format!("{root}/models")
+        },
         _ => format!("{base}/models"),
     })
 }
@@ -657,11 +661,15 @@ fn deepseek_generation_url(provider: &AiProvider, protocol: &str) -> Result<Stri
     }
     let suffix = match protocol {
         "Responses" => "/responses",
+        "Claude Messages" if base.ends_with("/anthropic/v1") => "/messages",
+        "Claude Messages" if base.ends_with("/anthropic") => "/v1/messages",
         "Claude Messages" => "/anthropic/v1/messages",
         "Chat Completions" => "/chat/completions",
         _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
     };
-    Ok(if base.ends_with(suffix) {
+    Ok(if base.ends_with(suffix)
+        || (protocol == "Claude Messages" && base.ends_with("/anthropic/v1/messages"))
+    {
         base.to_owned()
     } else {
         format!("{base}{suffix}")
