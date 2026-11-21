@@ -428,7 +428,7 @@ impl Render for AnswerReader {
                                 .gap_1()
                                 .child(
                                     Button::new("reader-mode-markdown")
-                                        .debug_selector(|| "reader-source".into())
+                                        .debug_selector(|| "reader-mode-markdown".into())
                                         .label("Markdown")
                                         .ghost()
                                         .small()
