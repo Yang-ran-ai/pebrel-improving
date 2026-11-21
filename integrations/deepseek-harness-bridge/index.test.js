@@ -58,6 +58,7 @@ test('ignores unsupported and malformed events instead of inventing session iden
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: NaN, time: 1 }), undefined)
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: -1, time: 1 }), undefined)
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: 1, time: Infinity }), undefined)
+  assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: 1, time: 1.5 }), undefined)
   assert.equal(toPebrelPayload(session, { type: 'turn/end', seq: 1, time: -1 }), undefined)
 })
 
