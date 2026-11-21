@@ -1,0 +1,30 @@
+diff --git a/pebrel_app/i18n/en-US.json b/pebrel_app/i18n/en-US.json
+index ee38c0b..b4a4fc8 100644
+--- a/pebrel_app/i18n/en-US.json
++++ b/pebrel_app/i18n/en-US.json
+@@ -167,8 +167,8 @@
+   "reader": {
+     "terminal": "Terminal",
+     "title": "{provider} · Latest complete answer",
+-    "read": "Read",
+-    "source": "Source",
++    "read": "Markdown",
++    "source": "Native",
+     "copy_source": "Copy source",
+     "attention": "The terminal needs input or approval. Select Terminal to return.",
+     "newer_answer": "A new answer has arrived. This page stays in place; return to the terminal and open Read to view it.",
+diff --git a/pebrel_app/i18n/zh-CN.json b/pebrel_app/i18n/zh-CN.json
+index 953c296..16a54ac 100644
+--- a/pebrel_app/i18n/zh-CN.json
++++ b/pebrel_app/i18n/zh-CN.json
+@@ -167,8 +167,8 @@
+   "reader": {
+     "terminal": "终端",
+     "title": "{provider} · 最近完整回答",
+-    "read": "阅读",
+-    "source": "原文",
++    "read": "Markdown",
++    "source": "Native",
+     "copy_source": "复制原文",
+     "attention": "终端需要你处理输入或审批；点击「终端」返回。",
+     "newer_answer": "已收到新回答；本页不跳动，返回终端再点「阅读」查看。",
