@@ -261,6 +261,16 @@ mod tests {
     }
 
     #[test]
+    fn deepseek_harness_is_a_first_class_agent_with_its_own_hook_preference() {
+        assert!(AGENTS.contains(&AgentKind::DeepSeekHarness));
+        assert_eq!(hook_for(AgentKind::DeepSeekHarness), Some(AgentHook::DeepSeekHarness));
+        assert_eq!(
+            AgentHook::DeepSeekHarness.settings_key(),
+            "ai_hooks_deepseek_harness"
+        );
+    }
+
+    #[test]
     fn hermes_entry_discovers_the_cli_without_claiming_hook_support() {
         assert!(AGENTS.contains(&AgentKind::Hermes));
         assert_eq!(hook_for(AgentKind::Hermes), None);
