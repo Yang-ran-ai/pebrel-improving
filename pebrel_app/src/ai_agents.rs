@@ -1030,6 +1030,22 @@ mod tests {
     }
 
     #[test]
+    fn deepseek_harness_is_a_distinct_desktop_agent_without_guessed_cli_resume_flags() {
+        assert_eq!(AgentKind::parse("dsh"), Some(AgentKind::DeepSeekHarness));
+        assert_eq!(
+            AgentKind::parse("DeepSeek Harness.exe"),
+            Some(AgentKind::DeepSeekHarness)
+        );
+        assert_eq!(
+            AgentKind::parse_command("dsh plugin --profile desktop list"),
+            Some(AgentKind::DeepSeekHarness)
+        );
+        assert_eq!(AgentKind::DeepSeekHarness.start_command(), None);
+        assert_eq!(AgentKind::DeepSeekHarness.resume_command("session-1"), None);
+        assert_eq!(AgentKind::DeepSeekHarness.fork_command("session-1"), None);
+    }
+
+    #[test]
     fn aliases_resolve_to_canonical_agents() {
         assert_eq!(AgentKind::parse(r"C:\tools\CLAUDE.EXE"), Some(AgentKind::Claude));
         assert_eq!(AgentKind::parse("cursor-agent"), Some(AgentKind::Cursor));
