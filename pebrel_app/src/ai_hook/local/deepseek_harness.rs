@@ -107,11 +107,8 @@ fn dsh_cli(desktop: Option<&Path>) -> Option<PathBuf> {
             ]);
         }
     }
-    if let Some(path) = std::env::var_os("PATH") {
-        for directory in std::env::split_paths(&path) {
-            candidates.extend(["dsh.cmd", "dsh.exe", "dsh"].map(|name| directory.join(name)));
-        }
-    }
+    // Do not fall back to npm-global dsh: upstream explicitly restricts
+    // Desktop-profile mutation to the runtime bundled with the Desktop app.
     candidates.into_iter().find(|path| path.is_file())
 }
 
@@ -235,6 +232,11 @@ pub(crate) fn install_hook() -> std::io::Result<()> {
             "DeepSeek Harness Desktop is not installed. Install the desktop application first.",
         ));
     }
+    if state.desktop_running {
+        return Err(std::io::Error::other(
+            "Quit DeepSeek Harness Desktop before installing or removing its profile plugin.",
+        ));
+    }
     if !state.profile_initialized {
         return Err(std::io::Error::other(
             "Open DeepSeek Harness Desktop once to initialize its desktop profile, then refresh Agents.",
@@ -259,6 +261,11 @@ pub(crate) fn remove_hook() -> std::io::Result<()> {
     let state = inspect();
     if !state.hook_installed {
         return Ok(());
+    }
+    if state.desktop_running {
+        return Err(std::io::Error::other(
+            "Quit DeepSeek Harness Desktop before installing or removing its profile plugin.",
+        ));
     }
     let cli = state.dsh_cli.ok_or_else(|| {
         std::io::Error::other("The Desktop-bundled dsh command was not found.")
@@ -291,6 +298,10 @@ pub(crate) fn launch_desktop() -> std::io::Result<()> {
 
 pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     let state = inspect();
+    if state.desktop_running {
+        return Err(std::io::Error::other("Quit DeepSeek Harness Desktop before uninstalling it."));
+    }
+    remove_hook()?;
     let executable = state.desktop_executable.ok_or_else(|| {
         std::io::Error::other("DeepSeek Harness Desktop is not installed.")
     })?;
