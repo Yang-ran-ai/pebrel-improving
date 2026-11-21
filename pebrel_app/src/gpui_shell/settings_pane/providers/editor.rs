@@ -469,14 +469,19 @@ impl SettingsPane {
                                 )
                                 .map(ProviderSelectTrigger::new)
                                 .dropdown_menu(move |mut menu, _, _| {
+                                    let current_kind = provider.kind;
                                     for (label, selected_kind) in [
                                         ("Responses", ProviderKind::Custom),
                                         ("Chat Completions", ProviderKind::OpenAi),
                                         ("Claude Messages", ProviderKind::Anthropic),
                                         ("Gemini API", ProviderKind::Google),
-                                    ] {
+                                    ]
+                                    .into_iter()
+                                    .filter(|(_, selected_kind)| {
+                                        current_kind != ProviderKind::DeepSeek
+                                            || *selected_kind != ProviderKind::Google
+                                    }) {
                                         let owner = owner.clone();
-                                        let current_kind = provider.kind;
                                         menu = menu.item(PopupMenuItem::new(label).on_click(
                                             move |_, _, cx| {
                                                 let _ = owner.update(cx, |this, cx| {
