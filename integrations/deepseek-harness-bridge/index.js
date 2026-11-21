@@ -5,7 +5,6 @@ export const name = 'pebrel-deepseek-harness-bridge'
 
 const EVENT_MAP = new Map([
   ['user/message', 'UserPromptSubmit'],
-  ['tool/call', 'PreToolUse'],
   ['tool/result', 'PostToolUse'],
   ['turn/end', 'Stop'],
 ])
@@ -35,20 +34,23 @@ export function toPebrelPayload(session, event) {
 }
 
 function forward(helperPath, session, event) {
-  if (!isAbsolute(helperPath)) return
-  if (!process.env.PEBREL_NOTIFY_PIPE && !process.env.NEBULA_NOTIFY_PIPE) return
+  if (!isAbsolute(helperPath)) return Promise.resolve()
+  if (!process.env.PEBREL_NOTIFY_PIPE && !process.env.NEBULA_NOTIFY_PIPE) return Promise.resolve()
 
   const payload = toPebrelPayload(session, event)
-  if (!payload) return
+  if (!payload) return Promise.resolve()
 
-  const child = spawn(helperPath, ['deepseek-harness'], {
-    env: process.env,
-    stdio: ['pipe', 'ignore', 'ignore'],
-    windowsHide: true,
+  return new Promise(resolve => {
+    const child = spawn(helperPath, ['deepseek-harness'], {
+      env: process.env,
+      stdio: ['pipe', 'ignore', 'ignore'],
+      windowsHide: true,
+    })
+    child.once('error', resolve)
+    child.once('close', resolve)
+    child.stdin.on('error', () => {})
+    child.stdin.end(JSON.stringify(payload))
   })
-  child.on('error', () => {})
-  child.stdin.on('error', () => {})
-  child.stdin.end(JSON.stringify(payload))
 }
 
 export function apply(ctx, config = {}) {
@@ -58,11 +60,19 @@ export function apply(ctx, config = {}) {
     return
   }
 
+  const queues = new Map()
   ctx.on('session/event', (session, event) => {
-    try {
-      forward(helperPath, session, event)
-    } catch (error) {
-      ctx.logger.warn(`pebrel-deepseek-harness-bridge: event forwarding failed: ${String(error)}`)
-    }
+    const id = String(session.id)
+    const previous = queues.get(id) ?? Promise.resolve()
+    const next = previous
+      .catch(() => {})
+      .then(() => forward(helperPath, session, event))
+      .catch(error => {
+        ctx.logger.warn(`pebrel-deepseek-harness-bridge: event forwarding failed: ${String(error)}`)
+      })
+      .finally(() => {
+        if (queues.get(id) === next) queues.delete(id)
+      })
+    queues.set(id, next)
   })
 }
