@@ -345,7 +345,15 @@ pub(crate) fn launch_desktop() -> std::io::Result<()> {
     }
     command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     command.spawn()?;
-    Ok(())
+    for _ in 0..40 {
+        if desktop_running() {
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+    Err(std::io::Error::other(
+        "DeepSeek Harness process did not appear after launch.",
+    ))
 }
 
 pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
@@ -369,8 +377,14 @@ pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     .map(|name| root.join(name))
     .find(|path| path.is_file())
     .ok_or_else(|| std::io::Error::other("The DeepSeek Harness uninstaller was not found."))?;
-    Command::new(uninstaller).spawn()?;
-    Ok(())
+    let status = Command::new(uninstaller).status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(format!(
+            "DeepSeek Harness uninstaller exited with {status}."
+        )))
+    }
 }
 
 pub(crate) fn install_desktop() -> std::io::Result<()> {
