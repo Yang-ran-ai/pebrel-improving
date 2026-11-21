@@ -51,7 +51,7 @@ jobs:
       - name: Validate package version
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version }}
+          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
         run: |
           if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid package version.' }
           $manifest = Get-Content source/pebrel_app/Cargo.toml -Raw -Encoding UTF8
@@ -73,20 +73,20 @@ jobs:
         working-directory: source
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version }}
+          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
         run: ./scripts/package-release.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
       - name: Build installer EXE
         working-directory: source
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version }}
+          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
         run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
       - name: Upload Windows x64 packages
         uses: actions/upload-artifact@v4
         with:
           name: pebrel-windows-x64
           path: |
-            source/dist/Pebrel-v${{ inputs.package_version }}-windows-x64.zip
-            source/dist/Pebrel-v${{ inputs.package_version }}-windows-x64-setup.exe
+            source/dist/Pebrel-v${{ inputs.package_version || '2.5.0' }}-windows-x64.zip
+            source/dist/Pebrel-v${{ inputs.package_version || '2.5.0' }}-windows-x64-setup.exe
           if-no-files-found: error
           retention-days: 30
