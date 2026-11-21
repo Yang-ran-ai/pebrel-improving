@@ -120,10 +120,13 @@ fn desktop_running() -> bool {
     {
         return Command::new("tasklist.exe")
             .args(["/FI", "IMAGENAME eq DeepSeek Harness.exe", "/FO", "CSV", "/NH"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|status| status.success());
+            .output()
+            .is_ok_and(|output| {
+                output.status.success()
+                    && String::from_utf8_lossy(&output.stdout)
+                        .to_ascii_lowercase()
+                        .contains("deepseek harness.exe")
+            });
     }
     #[cfg(not(windows))]
     {
@@ -151,12 +154,14 @@ fn inspect_manifest(path: &Path, bridge_dir: &Path) -> (bool, bool) {
         .and_then(Value::as_array)
         .is_some_and(|bundles| bundles.iter().any(|value| value.as_str() == Some(BUNDLE_NAME)));
     let installed = dependency && bundle;
+    let file_matches = |name: &str, expected: &str| {
+        std::fs::read_to_string(bridge_dir.join(name))
+            .is_ok_and(|actual| actual == expected)
+    };
     let current = installed
-        && std::fs::read_to_string(bridge_dir.join("index.js")).as_deref() == Ok(BRIDGE_JS)
-        && std::fs::read_to_string(bridge_dir.join("package.json")).as_deref()
-            == Ok(BRIDGE_PACKAGE)
-        && std::fs::read_to_string(bridge_dir.join("cordis.patch.yml")).as_deref()
-            == Ok(BRIDGE_PATCH);
+        && file_matches("index.js", BRIDGE_JS)
+        && file_matches("package.json", BRIDGE_PACKAGE)
+        && file_matches("cordis.patch.yml", BRIDGE_PATCH);
     (installed, current)
 }
 
