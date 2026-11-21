@@ -21,7 +21,10 @@ fn deepseek_real_requests_follow_all_three_selected_protocols() {
         let mut target = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-client-test");
         target.enabled = true;
         target.wire_api = wire.into();
-        assert!(supported(&target), "{wire} must be a supported DeepSeek protocol");
+        assert!(
+            supported(&target),
+            "{wire} must be a supported DeepSeek protocol"
+        );
         let (url, body) = payload(&target, "zh-CN", &messages, "").unwrap();
         assert_eq!(url, format!("https://api.deepseek.com{route}"));
         assert_eq!(body["model"], "deepseek-flash");
@@ -43,24 +46,33 @@ fn deepseek_response_decoders_match_the_selected_wire_protocol() {
     for (wire, response) in [
         (
             "Responses",
-            json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}),
+            json!({
+                "status":"completed",
+                "output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]
+            }),
         ),
         (
             "Chat Completions",
-            json!({"choices":[{"finish_reason":"stop","message":{"content":"chat ok","refusal":null}}]}),
+            json!({
+                "choices":[{"finish_reason":"stop","message":{"content":"chat ok","refusal":null}}]
+            }),
         ),
         (
             "Claude Messages",
-            json!({"stop_reason":"end_turn","content":[{"type":"text","text":"messages ok"}]}),
+            json!({
+                "stop_reason":"end_turn",
+                "content":[{"type":"text","text":"messages ok"}]
+            }),
         ),
     ] {
         target.wire_api = wire.into();
-        assert_eq!(response_text(&target, &response).as_deref(), Some(match wire {
+        let expected = match wire {
             "Responses" => "responses ok",
             "Chat Completions" => "chat ok",
             "Claude Messages" => "messages ok",
             _ => unreachable!(),
-        }));
+        };
+        assert_eq!(response_text(&target, &response).as_deref(), Some(expected));
     }
 }
 
@@ -104,7 +116,8 @@ fn requests_are_short_independent_and_contain_user_voice() {
     assert!(body.get("tools").is_none());
     assert_eq!(body["input"][0], json!({"role":"user","content":"先把光标测完"}));
     assert_eq!(body["instructions"], "Write the suggested user message in zh-CN.");
-    let (_, remembered) = payload(&responses, "zh-CN", &messages, "Prefer concise answers").unwrap();
+    let (_, remembered) =
+        payload(&responses, "zh-CN", &messages, "Prefer concise answers").unwrap();
     assert!(remembered["instructions"].as_str().unwrap().contains("Prefer concise answers"));
     assert_eq!(body["input"][1]["role"], "user");
     let fragment = body["input"][1]["content"].as_str().unwrap();
