@@ -646,10 +646,14 @@ mod tests {
             cx.update(|_, cx| {
                 assert_eq!(cx.read_from_clipboard().unwrap().text().as_deref(), Some(source))
             });
-            let previous_mode = reader.read_with(cx, |reader, _| reader.raw_mode);
-            let toggle = cx.debug_bounds("reader-mode-markdown").unwrap();
-            cx.simulate_click(toggle.center(), gpui::Modifiers::default());
-            assert_ne!(reader.read_with(cx, |reader, _| reader.raw_mode), previous_mode);
+            let native = cx.debug_bounds("reader-mode-native").unwrap();
+            cx.simulate_click(native.center(), gpui::Modifiers::default());
+            assert!(reader.read_with(cx, |reader, _| reader.raw_mode));
+
+            cx.run_until_parked();
+            let markdown = cx.debug_bounds("reader-mode-markdown").unwrap();
+            cx.simulate_click(markdown.center(), gpui::Modifiers::default());
+            assert!(!reader.read_with(cx, |reader, _| reader.raw_mode));
             cx.update(|window, cx| {
                 cx.write_to_clipboard(ClipboardItem::new_string("before copy in new mode".into()));
                 window.refresh();
