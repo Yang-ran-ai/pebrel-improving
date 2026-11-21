@@ -1034,21 +1034,26 @@ mod tests {
                     let count = stream.read(&mut buffer).unwrap();
                     assert_ne!(count, 0);
                     bytes.extend_from_slice(&buffer[..count]);
-                    if let Some(end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
+                    if let Some(end) = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n") {
                         let headers = String::from_utf8_lossy(&bytes[..end]);
-                        let length: usize = headers.lines().find_map(|line| {
-                            let (name, value) = line.split_once(':')?;
-                            name.eq_ignore_ascii_case("content-length")
-                                .then(|| value.trim().parse().unwrap())
-                        }).unwrap();
-                        if bytes.len() >= end + 4 + length { break; }
+                        let length: usize = headers
+                            .lines()
+                            .find_map(|line| {
+                                let (name, value) = line.split_once(':')?;
+                                name.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse().unwrap())
+                            })
+                            .unwrap();
+                        if bytes.len() >= end + 4 + length {
+                            break;
+                        }
                     }
                 }
                 let request = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
                 assert!(request.starts_with(&format!("post {route} http/1.1")));
                 assert!(request.contains(expected_auth));
                 let response = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
+                    "HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\nContent-Length: {}\\r\\nConnection: close\\r\\n\\r\\n{response_body}",
                     response_body.len()
                 );
                 stream.write_all(response.as_bytes()).unwrap();
@@ -1056,7 +1061,8 @@ mod tests {
             let result = test_deepseek_generation(
                 &provider,
                 Some(Zeroizing::new("test-deepseek-key".to_owned())),
-            ).unwrap();
+            )
+            .unwrap();
             assert_eq!(result.0, 200, "{protocol}");
             assert!(result.1.ends_with("ok"), "{protocol}: {}", result.1);
             server.join().unwrap();
