@@ -50,3 +50,31 @@ diff --git a/pebrel_app/src/gpui_shell/terminal/answer_reader.rs b/pebrel_app/sr
                          )
                          .child(
                              Button::new("reader-copy")
+
+diff --git a/pebrel_app/src/ai_hook/protocol.rs b/pebrel_app/src/ai_hook/protocol.rs
+--- a/pebrel_app/src/ai_hook/protocol.rs
++++ b/pebrel_app/src/ai_hook/protocol.rs
+@@ -20,7 +20,7 @@
+ pub(super) fn claude_style(source: &str) -> bool {
+-    matches!(source, "claude" | "qoder" | "codebuddy" | "qwen" | "droid")
++    matches!(source, "claude" | "qoder" | "codebuddy" | "qwen" | "droid" | "deepseek-harness")
+ }
+diff --git a/pebrel_hook/src/main.rs b/pebrel_hook/src/main.rs
+--- a/pebrel_hook/src/main.rs
++++ b/pebrel_hook/src/main.rs
+@@ -177,7 +177,8 @@
+             | "qwen"
+             | "droid"
+-            | "antigravity"
++            | "antigravity"
++            | "deepseek-harness"
+     )
+ }
+@@ -191,7 +192,8 @@
+             | "qwen"
+             | "droid"
+-            | "antigravity"
++            | "antigravity"
++            | "deepseek-harness"
+     )
+ }
