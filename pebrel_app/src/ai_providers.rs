@@ -970,6 +970,12 @@ mod tests {
         assert_eq!(test_url(&openai).unwrap(), "https://api.openai.com/v1/models");
         let deepseek = AiProvider::preset(ProviderKind::DeepSeek, "deepseek");
         assert_eq!(test_url(&deepseek).unwrap(), "https://api.deepseek.com/models");
+        let mut deepseek_anthropic = deepseek.clone();
+        deepseek_anthropic.base_url = "https://api.deepseek.com/anthropic/v1".into();
+        assert_eq!(
+            test_url(&deepseek_anthropic).unwrap(),
+            "https://api.deepseek.com/models"
+        );
         assert!(deepseek.kind.uses_openai_protocol());
         let azure = AiProvider::preset(ProviderKind::AzureOpenAi, "azure");
         assert!(test_url(&azure).unwrap().contains("/openai/models?api-version="));
