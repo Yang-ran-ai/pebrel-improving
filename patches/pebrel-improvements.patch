@@ -82,7 +82,7 @@ diff --git a/pebrel_hook/src/main.rs b/pebrel_hook/src/main.rs
 diff --git a/pebrel_app/src/ai_hook/tests.rs b/pebrel_app/src/ai_hook/tests.rs
 --- a/pebrel_app/src/ai_hook/tests.rs
 +++ b/pebrel_app/src/ai_hook/tests.rs
-@@ -197,7 +197,7 @@
+@@ -197,6 +197,6 @@
  fn claude_style_agents_share_the_lifecycle_under_their_own_source() {
 -    for source in ["qoder", "codebuddy", "qwen", "droid"] {
 +    for source in ["qoder", "codebuddy", "qwen", "droid", "deepseek-harness"] {
@@ -93,7 +93,7 @@ diff --git a/pebrel_app/src/ai_hook/tests.rs b/pebrel_app/src/ai_hook/tests.rs
 diff --git a/pebrel_hook/src/main.rs b/pebrel_hook/src/main.rs
 --- a/pebrel_hook/src/main.rs
 +++ b/pebrel_hook/src/main.rs
-@@ -358,7 +358,7 @@
+@@ -358,5 +358,5 @@
      fn claude_style_sources_are_known_and_drain_stdin_without_an_event_contract() {
 -        for source in ["qoder", "codebuddy", "qwen", "droid"] {
 +        for source in ["qoder", "codebuddy", "qwen", "droid", "deepseek-harness"] {
