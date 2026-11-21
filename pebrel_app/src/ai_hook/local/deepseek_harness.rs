@@ -556,6 +556,17 @@ mod tests {
     }
 
     #[test]
+    fn uninstaller_discovery_does_not_escape_into_generic_parent_directories() {
+        let directory = tempfile::tempdir().unwrap();
+        let install = directory.path().join("Programs/DeepSeek Harness");
+        std::fs::create_dir_all(&install).unwrap();
+        let executable = install.join("DeepSeek Harness.exe");
+        std::fs::write(&executable, b"fixture").unwrap();
+        std::fs::write(directory.path().join("Programs/uninstall.exe"), b"unrelated").unwrap();
+        assert_eq!(find_uninstaller(&executable), None);
+    }
+
+    #[test]
     fn profile_bridge_presence_requires_both_dependency_and_bundle_layer() {
         let directory = tempfile::tempdir().unwrap();
         let bridge = directory.path().join("bridge");
