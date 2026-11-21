@@ -375,16 +375,34 @@ pub(crate) fn remove_hook() -> std::io::Result<()> {
 
 pub(crate) fn launch_desktop() -> std::io::Result<()> {
     let state = inspect();
+    if state.desktop_running {
+        return Err(std::io::Error::other(
+            "DeepSeek Harness is already running. Quit it from the tray before launching it through Pebrel.",
+        ));
+    }
     let executable = state.desktop_executable.ok_or_else(|| {
         std::io::Error::other("DeepSeek Harness Desktop is not installed.")
     })?;
+    let helper = super::helper_path();
+    let pipe = std::env::var_os(crate::ai_hook::PIPE_ENV)
+        .or_else(|| std::env::var_os(crate::ai_hook::LEGACY_PIPE_ENV));
+    if state.hook_installed && !state.hook_current {
+        return Err(std::io::Error::other(
+            "The DeepSeek Harness Hook is not current. Toggle it off and on again before launch.",
+        ));
+    }
+    if state.hook_installed && (helper.is_none() || pipe.is_none()) {
+        return Err(std::io::Error::other(
+            "Pebrel's private Hook helper or pipe is unavailable; restart Pebrel before launching DeepSeek Harness.",
+        ));
+    }
     let mut command = Command::new(executable);
-    if let Some(helper) = super::helper_path() {
+    if let Some(helper) = helper {
         command.env(crate::ai_hook::HOOK_EXE_ENV, helper);
     }
-    // The pipe is process-wide; when the desktop is launched from the Agents
-    // surface the hook router safely falls back to the currently focused pane.
-    if let Some(pipe) = std::env::var_os(crate::ai_hook::PIPE_ENV) {
+    // The pipe is process-wide; the bridge adds session cwd so Pebrel can
+    // return each event to the matching Pane even without a per-pane launcher.
+    if let Some(pipe) = pipe {
         command.env(crate::ai_hook::PIPE_ENV, pipe);
     }
     command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
