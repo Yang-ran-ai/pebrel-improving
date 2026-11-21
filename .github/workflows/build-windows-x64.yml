@@ -1,12 +1,10 @@
-name: Build Windows x64 test packages
+name: Build Windows x64 release packages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       package_version:
-        description: Pebrel version to package
+        description: Pebrel version to package (must match pebrel_app/Cargo.toml)
         required: true
         default: "2.5.0"
         type: string
@@ -23,25 +21,14 @@ env:
   RUST_BACKTRACE: "1"
   RUST_TOOLCHAIN: "1.97.1"
   PYTHONUTF8: "1"
-  SOURCE_REPOSITORY: Yang-ran-ran/pebrel-custom
-  SOURCE_REVISION: 8b8a4e50d4630a2a83b2e968250bac46c22fd263
 
 jobs:
   windows-x64:
     runs-on: windows-2022
     timeout-minutes: 120
     steps:
-      - name: Checkout build controller
+      - name: Checkout standalone Pebrel source
         uses: actions/checkout@v4
-      - name: Checkout pinned Pebrel source snapshot
-        uses: actions/checkout@v4
-        with:
-          repository: Yang-ran-ran/pebrel-custom
-          ref: 8b8a4e50d4630a2a83b2e968250bac46c22fd263
-          path: source
-      - name: Apply repository customization patch
-        shell: pwsh
-        run: git -C source apply ../patches/pebrel-improvements.patch
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -51,42 +38,38 @@ jobs:
       - name: Validate package version
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
+          PACKAGE_VERSION: ${{ inputs.package_version }}
         run: |
-          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid package version.' }
-          $manifest = Get-Content source/pebrel_app/Cargo.toml -Raw -Encoding UTF8
-          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*$')
+          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\\.[0-9]+\\.[0-9]+$') { throw 'Invalid package version.' }
+          $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
+          $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
           if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
             throw 'Package version must match pebrel_app/Cargo.toml.'
           }
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
       - name: Prepare Windows console runtime
-        working-directory: source
         shell: pwsh
         run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
       - name: Build GPUI application and runtime helper
-        working-directory: source
         shell: pwsh
         run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
       - name: Package portable ZIP
-        working-directory: source
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
+          PACKAGE_VERSION: ${{ inputs.package_version }}
         run: ./scripts/package-release.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
       - name: Build installer EXE
-        working-directory: source
         shell: pwsh
         env:
-          PACKAGE_VERSION: ${{ inputs.package_version || '2.5.0' }}
+          PACKAGE_VERSION: ${{ inputs.package_version }}
         run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
       - name: Upload Windows x64 packages
         uses: actions/upload-artifact@v4
         with:
           name: pebrel-windows-x64
           path: |
-            source/dist/Pebrel-v${{ inputs.package_version || '2.5.0' }}-windows-x64.zip
-            source/dist/Pebrel-v${{ inputs.package_version || '2.5.0' }}-windows-x64-setup.exe
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64.zip
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64-setup.exe
           if-no-files-found: error
           retention-days: 30
