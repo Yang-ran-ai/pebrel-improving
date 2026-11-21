@@ -110,7 +110,11 @@ impl SettingsPane {
     }
 
     fn test_deepseek_generation(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.provider_test_running || self.provider_ui.write_task.is_some() || self.provider_ui.loading_auth {
+        if self.provider_test_running
+            || self.provider_ui.fetching
+            || self.provider_ui.write_task.is_some()
+            || self.provider_ui.loading_auth
+        {
             return;
         }
         let provider = match self.provider_draft(cx) {
@@ -122,7 +126,9 @@ impl SettingsPane {
             },
         };
         if provider.kind != ProviderKind::DeepSeek {
-            self.provider_status = Some(ProviderStatus::Error("Select the DeepSeek API preset first".into()));
+            self.provider_status = Some(ProviderStatus::Error(
+                "Select the DeepSeek API preset first".into(),
+            ));
             cx.notify();
             return;
         }
@@ -151,7 +157,9 @@ impl SettingsPane {
         cx.spawn_in(window, async move |this, cx| {
             let (result, elapsed_ms) = task.await;
             let _ = this.update_in(cx, |this, _window, cx| {
-                if this.provider_test_seq != sequence || this.provider_ui.editing.as_ref() != Some(&id) {
+                if this.provider_test_seq != sequence
+                    || this.provider_ui.editing.as_ref() != Some(&id)
+                {
                     return;
                 }
                 this.provider_test_running = false;
