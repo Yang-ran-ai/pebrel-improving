@@ -118,10 +118,6 @@ pub(crate) fn uninstall_deepseek_harness() -> Result<(), String> {
     super::local::uninstall_deepseek_harness().map_err(|error| error.to_string())
 }
 
-pub(crate) fn open_deepseek_harness_download() -> Result<(), String> {
-    super::local::open_deepseek_harness_download().map_err(|error| error.to_string())
-}
-
 fn inspect_hook(hook: AgentHook) -> HookInspection {
     super::local::settings::inspect(hook)
 }
