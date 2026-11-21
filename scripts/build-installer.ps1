@@ -109,7 +109,8 @@ if ($PackageBrand -eq 'Pebrel' -and (Get-Item -LiteralPath $packagedExe).Version
 if (-not $AllowStale) {
     $memberDirs = @(
         'pebrel_app', 'pebrel_terminal', 'pebrel_config', 'pebrel_config_derive',
-        'pebrel-completions', 'pebrel_gpui', 'pebrel_settings', 'pebrel_split'
+        'pebrel-completions', 'pebrel_gpui', 'pebrel_settings', 'pebrel_split',
+        'mobile/link', 'third_party/winit'
     ) | ForEach-Object { Join-Path $repo $_ }
     $sourceScopes = @(
         @{
