@@ -524,7 +524,7 @@ mod tests {
         std::fs::write(bridge.join("cordis.patch.yml"), BRIDGE_PATCH).unwrap();
         let manifest = directory.path().join("package.json");
         let profile = serde_json::json!({
-            "dependencies": { BUNDLE_NAME: "link:bridge" },
+            "dependencies": { "@pebrel/deepseek-harness-bridge": "link:bridge" },
             "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", BUNDLE_NAME] } }
         });
         std::fs::write(&manifest, serde_json::to_vec(&profile).unwrap()).unwrap();
