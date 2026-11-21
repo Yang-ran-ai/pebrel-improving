@@ -539,8 +539,9 @@ pub fn test_provider_with_key(
     finish(outcome)
 }
 
-/// Send a real, minimal DeepSeek Chat Completions request. This is separate
-/// from GET /models: a catalog response does not prove model generation works.
+/// Send a real, minimal DeepSeek generation request using the selected
+/// official wire protocol. This is separate from GET /models: a catalog
+/// response does not prove that the selected model can generate a response.
 pub fn test_deepseek_generation(
     provider: &AiProvider,
     draft_key: Option<Zeroizing<String>>,
@@ -552,7 +553,12 @@ pub fn test_deepseek_generation(
     if model.is_empty() {
         return Err("Choose a DeepSeek model before sending a test request".into());
     }
-    let url = deepseek_generation_url(provider)?;
+    let protocol = if provider.wire_api.trim().is_empty() {
+        "Chat Completions"
+    } else {
+        provider.wire_api.trim()
+    };
+    let url = deepseek_generation_url(provider, protocol)?;
     let key = match draft_key {
         Some(key) if !key.is_empty() => key,
         Some(_) => return Err("Enter a DeepSeek API key".into()),
@@ -578,20 +584,42 @@ pub fn test_deepseek_generation(
         .http_status_as_error(false);
     let config = if loopback { config.proxy(None) } else { config }.build();
     let agent: ureq::Agent = config.new_agent();
-    let bearer = Zeroizing::new(format!("Bearer {}", key.as_str()));
-    let payload = serde_json::json!({
-        "model": model,
-        "messages": [{
-            "role": "user",
-            "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
-        }],
-        "stream": false,
-        "max_tokens": 32
-    });
-    let mut response = agent
-        .post(&url)
-        .header("Authorization", bearer.as_str())
-        .header("Content-Type", "application/json")
+    let payload = match protocol {
+        "Responses" => serde_json::json!({
+            "model": model,
+            "input": "Reply with exactly this token and nothing else: PEBREL_API_OK",
+            "max_output_tokens": 32,
+            "stream": false
+        }),
+        "Claude Messages" => serde_json::json!({
+            "model": model,
+            "max_tokens": 32,
+            "messages": [{
+                "role": "user",
+                "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
+            }]
+        }),
+        "Chat Completions" => serde_json::json!({
+            "model": model,
+            "messages": [{
+                "role": "user",
+                "content": "Reply with exactly this token and nothing else: PEBREL_API_OK"
+            }],
+            "stream": false,
+            "max_tokens": 32
+        }),
+        _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
+    };
+    let mut request = agent.post(&url).header("Content-Type", "application/json");
+    request = if protocol == "Claude Messages" {
+        request
+            .header("x-api-key", key.as_str())
+            .header("anthropic-version", "2023-06-01")
+    } else {
+        let bearer = Zeroizing::new(format!("Bearer {}", key.as_str()));
+        request.header("Authorization", bearer.as_str())
+    };
+    let mut response = request
         .send_json(&payload)
         .map_err(|error| match semantic_error(&error) {
             ProviderTestOutcome::Timeout => "DeepSeek generation request timed out".to_owned(),
@@ -604,7 +632,7 @@ pub fn test_deepseek_generation(
     if !response.status().is_success() {
         return Err(match status {
             401 | 403 => "DeepSeek rejected the API key (HTTP authentication failure)".to_owned(),
-            404 => "DeepSeek Chat Completions endpoint or model was not found (HTTP 404)".to_owned(),
+            404 => format!("DeepSeek {protocol} endpoint or model was not found (HTTP 404)"),
             429 => "DeepSeek rate limit or quota reached (HTTP 429)".to_owned(),
             _ => format!("DeepSeek generation request returned HTTP {status}"),
         });
@@ -615,36 +643,69 @@ pub fn test_deepseek_generation(
         .limit(64 * 1024)
         .read_to_string()
         .map_err(|_| "DeepSeek returned an unreadable response".to_owned())?;
-    let preview = parse_deepseek_generation(&body)?;
+    let preview = parse_deepseek_generation(&body, protocol)?;
     Ok((status, preview))
 }
 
-fn deepseek_generation_url(provider: &AiProvider) -> Result<String, String> {
+fn deepseek_generation_url(provider: &AiProvider, protocol: &str) -> Result<String, String> {
     let base = provider.base_url.trim().trim_end_matches('/');
     if !(base.starts_with("https://") || base.starts_with("http://")) {
         return Err("Invalid DeepSeek API endpoint".into());
     }
-    Ok(if provider.full_url || base.ends_with("/chat/completions") {
+    if provider.full_url {
+        return Ok(base.to_owned());
+    }
+    let suffix = match protocol {
+        "Responses" => "/responses",
+        "Claude Messages" => "/anthropic/v1/messages",
+        "Chat Completions" => "/chat/completions",
+        _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
+    };
+    Ok(if base.ends_with(suffix) {
         base.to_owned()
     } else {
-        format!("{base}/chat/completions")
+        format!("{base}{suffix}")
     })
 }
 
-fn parse_deepseek_generation(body: &str) -> Result<String, String> {
+fn parse_deepseek_generation(body: &str, protocol: &str) -> Result<String, String> {
     let value: serde_json::Value =
         serde_json::from_str(body).map_err(|_| "DeepSeek returned invalid JSON".to_owned())?;
-    let content = value
-        .get("choices")
-        .and_then(serde_json::Value::as_array)
-        .and_then(|choices| choices.first())
-        .and_then(|choice| choice.get("message"))
-        .and_then(|message| message.get("content"))
-        .and_then(serde_json::Value::as_str)
-        .ok_or_else(|| "DeepSeek response did not contain a text completion".to_owned())?;
+    let content = match protocol {
+        "Responses" => value
+            .get("output")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("message"))
+            .flat_map(|item| item.get("content").and_then(serde_json::Value::as_array).into_iter().flatten())
+            .filter(|part| part.get("type").and_then(serde_json::Value::as_str) == Some("output_text"))
+            .filter_map(|part| part.get("text").and_then(serde_json::Value::as_str))
+            .collect::<Vec<_>>()
+            .join(" "),
+        "Claude Messages" => value
+            .get("content")
+            .and_then(serde_json::Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|part| part.get("type").and_then(serde_json::Value::as_str) == Some("text"))
+            .filter_map(|part| part.get("text").and_then(serde_json::Value::as_str))
+            .collect::<Vec<_>>()
+            .join(" "),
+        "Chat Completions" => value
+            .get("choices")
+            .and_then(serde_json::Value::as_array)
+            .and_then(|choices| choices.first())
+            .and_then(|choice| choice.get("message"))
+            .and_then(|message| message.get("content"))
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("")
+            .to_owned(),
+        _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
+    };
     let preview: String = content.chars().take(240).collect();
     if preview.trim().is_empty() {
-        return Err("DeepSeek returned an empty completion".into());
+        return Err("DeepSeek returned an empty text completion".into());
     }
     Ok(preview)
 }
@@ -654,24 +715,47 @@ mod deepseek_generation_tests {
     use super::*;
 
     #[test]
-    fn deepseek_generation_url_respects_base_url_and_explicit_full_url() {
-        let mut provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-probe");
-        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://api.deepseek.com/chat/completions");
-        provider.base_url = "https://proxy.example/v1".into();
-        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://proxy.example/v1/chat/completions");
-        provider.base_url = "https://proxy.example/custom".into();
-        provider.full_url = true;
-        assert_eq!(deepseek_generation_url(&provider).unwrap(), "https://proxy.example/custom");
+    fn deepseek_generation_urls_follow_official_protocol_routes() {
+        let provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-probe");
+        assert_eq!(
+            deepseek_generation_url(&provider, "Responses").unwrap(),
+            "https://api.deepseek.com/responses"
+        );
+        assert_eq!(
+            deepseek_generation_url(&provider, "Claude Messages").unwrap(),
+            "https://api.deepseek.com/anthropic/v1/messages"
+        );
+        assert_eq!(
+            deepseek_generation_url(&provider, "Chat Completions").unwrap(),
+            "https://api.deepseek.com/chat/completions"
+        );
+        assert!(deepseek_generation_url(&provider, "Gemini API").is_err());
     }
 
     #[test]
-    fn deepseek_generation_parser_requires_nonempty_text_completion() {
+    fn deepseek_generation_parsers_extract_text_for_all_three_protocols() {
         assert_eq!(
-            parse_deepseek_generation(r#"{"choices":[{"message":{"content":"PEBREL_API_OK"}}]}"#).unwrap(),
-            "PEBREL_API_OK"
+            parse_deepseek_generation(
+                r#"{"output":[{"type":"message","content":[{"type":"output_text","text":"response ok"}]}]}"#,
+                "Responses"
+            ).unwrap(),
+            "response ok"
         );
-        assert!(parse_deepseek_generation(r#"{"choices":[]}"#).is_err());
-        assert!(parse_deepseek_generation(r#"{"choices":[{"message":{"content":""}}]}"#).is_err());
+        assert_eq!(
+            parse_deepseek_generation(
+                r#"{"content":[{"type":"text","text":"message ok"}]}"#,
+                "Claude Messages"
+            ).unwrap(),
+            "message ok"
+        );
+        assert_eq!(
+            parse_deepseek_generation(
+                r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
+                "Chat Completions"
+            ).unwrap(),
+            "chat ok"
+        );
+        assert!(parse_deepseek_generation(r#"{"choices":[]}"#, "Chat Completions").is_err());
     }
 }
 
