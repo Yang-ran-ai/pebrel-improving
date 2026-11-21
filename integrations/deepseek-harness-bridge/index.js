@@ -24,9 +24,7 @@ export function toPebrelPayload(session, event) {
     source: 'deepseek-harness',
   }
 
-  if (event.type === 'tool/call') {
-    payload.tool_name = typeof data.name === 'string' ? data.name : 'unknown'
-  } else if (event.type === 'tool/result') {
+  if (event.type === 'tool/result') {
     payload.tool_name = typeof data.message?.name === 'string' ? data.message.name : 'unknown'
   }
 
