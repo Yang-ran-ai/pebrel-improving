@@ -401,6 +401,7 @@ impl SettingsPane {
             });
         let owner = cx.entity().downgrade();
         let default_protocol = super::default_wire_api(kind);
+        let protocol_provider_kind = provider.kind;
         let protocol = self.provider_ui.draft_wire_api.unwrap_or(if provider.wire_api.is_empty() {
             default_protocol
         } else {
@@ -469,7 +470,7 @@ impl SettingsPane {
                                 )
                                 .map(ProviderSelectTrigger::new)
                                 .dropdown_menu(move |mut menu, _, _| {
-                                    let current_kind = provider.kind;
+                                    let current_kind = protocol_provider_kind;
                                     for (label, selected_kind) in [
                                         ("Responses", ProviderKind::Custom),
                                         ("Chat Completions", ProviderKind::OpenAi),
