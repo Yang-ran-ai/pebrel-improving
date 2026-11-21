@@ -68,8 +68,9 @@ fn wire_protocol(provider: &AiProvider) -> Option<WireProtocol> {
             Some(WireProtocol::ChatCompletions)
         },
         "responses" => Some(WireProtocol::Responses),
-        "messages" | "claude messages" => Some(WireProtocol::Messages)
-            .filter(|_| provider.kind == ProviderKind::DeepSeek),
+        "messages" | "claude messages" => {
+            Some(WireProtocol::Messages).filter(|_| provider.kind == ProviderKind::DeepSeek)
+        },
         _ => None,
     }
 }
@@ -152,7 +153,10 @@ fn request_with_key(
     if key.is_empty() && provider.kind.requires_api_key() {
         return Err(Failure::Unavailable);
     }
-    if !messages.iter().any(|message| message.role == "user" && !message.text.trim().is_empty()) {
+    if !messages
+        .iter()
+        .any(|message| message.role == "user" && !message.text.trim().is_empty())
+    {
         return Err(Failure::Unavailable);
     }
     let (url, body) =
@@ -176,7 +180,9 @@ fn request_with_key(
     let bearer = Zeroizing::new(format!("Bearer {key}"));
     request = match protocol {
         WireProtocol::Messages => {
-            request.header("x-api-key", key).header("anthropic-version", "2023-06-01")
+            request
+                .header("x-api-key", key)
+                .header("anthropic-version", "2023-06-01")
         },
         _ if key.is_empty() => request,
         _ => request.header("Authorization", bearer.as_str()),
@@ -295,7 +301,8 @@ fn payload(
         WireProtocol::ChatCompletions => {
             input.insert(0, json!({"role":"system", "content":locale}));
             let mut body = json!({"model":provider.model, "messages":input});
-            body[if reasoning_model { "max_completion_tokens" } else { "max_tokens" }] = json!(512);
+            body[if reasoning_model { "max_completion_tokens" } else { "max_tokens" }] =
+                json!(512);
             ("chat/completions", body)
         },
     };
@@ -306,7 +313,11 @@ fn payload(
             body["reasoning_effort"] = json!("low");
         }
     }
-    let url = if provider.full_url { base.to_owned() } else { format!("{base}/{route}") };
+    let url = if provider.full_url {
+        base.to_owned()
+    } else {
+        format!("{base}/{route}")
+    };
     Some((url, body))
 }
 
