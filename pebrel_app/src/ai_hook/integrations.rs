@@ -293,7 +293,12 @@ mod tests {
             AgentKind::Trae,
             AgentKind::CommandCode,
         ] {
-            assert_eq!(hook_for(agent), None, "{} must not claim an unimplemented hook", agent.slug());
+            assert_eq!(
+                hook_for(agent),
+                None,
+                "{} must not claim an unimplemented hook",
+                agent.slug()
+            );
         }
     }
 
@@ -302,8 +307,11 @@ mod tests {
         assert!(AGENTS.contains(&AgentKind::DeepSeekHarness));
         assert_eq!(AgentKind::parse("DeepSeek Harness.exe"), Some(AgentKind::DeepSeekHarness));
         assert_eq!(AgentKind::parse_command("dsh"), Some(AgentKind::DeepSeekHarness));
-        assert_eq!(AgentKind::DeepSeekHarness.start_command(), None,
-            "Desktop launch is managed by the dedicated installer/launcher, not a guessed CLI command");
+        assert_eq!(
+            AgentKind::DeepSeekHarness.start_command(),
+            None,
+            "Desktop launch is managed by the dedicated installer/launcher, not a guessed CLI command"
+        );
         assert_eq!(hook_for(AgentKind::DeepSeekHarness), Some(AgentHook::DeepSeekHarness));
         assert_eq!(
             AgentHook::DeepSeekHarness.settings_key(),
