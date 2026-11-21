@@ -56,7 +56,11 @@ impl SettingsPane {
     }
 
     fn test_provider_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.provider_test_running || self.provider_ui.fetching || self.provider_ui.write_task.is_some() || self.provider_ui.loading_auth {
+        if self.provider_test_running
+            || self.provider_ui.fetching
+            || self.provider_ui.write_task.is_some()
+            || self.provider_ui.loading_auth
+        {
             return;
         }
         let provider = match self.provider_draft(cx) {
@@ -89,7 +93,9 @@ impl SettingsPane {
         cx.spawn_in(window, async move |this, cx| {
             let result = task.await;
             let _ = this.update_in(cx, |this, _window, cx| {
-                if this.provider_test_seq != sequence || this.provider_ui.editing.as_ref() != Some(&id) {
+                if this.provider_test_seq != sequence
+                    || this.provider_ui.editing.as_ref() != Some(&id)
+                {
                     return;
                 }
                 this.provider_test_running = false;
@@ -361,7 +367,9 @@ impl SettingsPane {
                                     )
                                     .tooltip(language.text(Message::ProvidersFetch))
                                     .loading(self.provider_ui.fetching)
-                                    .disabled(self.provider_ui.fetching || busy || self.provider_test_running)
+                                    .disabled(
+                                        self.provider_ui.fetching || busy || self.provider_test_running,
+                                    )
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.fetch_provider_models(window, cx)
                                     })),
@@ -486,8 +494,12 @@ impl SettingsPane {
                                         menu = menu.item(PopupMenuItem::new(label).on_click(
                                             move |_, _, cx| {
                                                 let _ = owner.update(cx, |this, cx| {
-                                                    this.provider_ui.draft_kind =
-                                                        Some(super::provider_kind_for_protocol(current_kind, selected_kind));
+                                                    this.provider_ui.draft_kind = Some(
+                                                        super::provider_kind_for_protocol(
+                                                            current_kind,
+                                                            selected_kind,
+                                                        ),
+                                                    );
                                                     this.provider_ui.draft_wire_api = Some(label);
                                                     this.provider_codex_confirm = None;
                                                     this.provider_ui.sequence =
