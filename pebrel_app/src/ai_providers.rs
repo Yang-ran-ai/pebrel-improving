@@ -554,7 +554,9 @@ pub fn test_deepseek_generation(
     draft_key: Option<Zeroizing<String>>,
 ) -> Result<(u16, String), String> {
     if provider.kind != ProviderKind::DeepSeek {
-        return Err("Real generation probe is currently defined only for the DeepSeek API preset".into());
+        return Err(
+            "Real generation probe is currently defined only for the DeepSeek API preset".into(),
+        );
     }
     let model = provider.model.trim();
     if model.is_empty() {
@@ -631,14 +633,18 @@ pub fn test_deepseek_generation(
         .map_err(|error| match semantic_error(&error) {
             ProviderTestOutcome::Timeout => "DeepSeek generation request timed out".to_owned(),
             ProviderTestOutcome::HostNotFound => "DeepSeek API host was not found".to_owned(),
-            ProviderTestOutcome::ConnectionFailed => "Could not connect to the DeepSeek API".to_owned(),
+            ProviderTestOutcome::ConnectionFailed => {
+                "Could not connect to the DeepSeek API".to_owned()
+            },
             ProviderTestOutcome::Tls => "DeepSeek API TLS handshake failed".to_owned(),
             _ => "DeepSeek generation request failed".to_owned(),
         })?;
     let status = response.status().as_u16();
     if !response.status().is_success() {
         return Err(match status {
-            401 | 403 => "DeepSeek rejected the API key (HTTP authentication failure)".to_owned(),
+            401 | 403 => {
+                "DeepSeek rejected the API key (HTTP authentication failure)".to_owned()
+            },
             404 => format!("DeepSeek {protocol} endpoint or model was not found (HTTP 404)"),
             429 => "DeepSeek rate limit or quota reached (HTTP 429)".to_owned(),
             _ => format!("DeepSeek generation request returned HTTP {status}"),
@@ -688,9 +694,18 @@ fn parse_deepseek_generation(body: &str, protocol: &str) -> Result<String, Strin
             .and_then(serde_json::Value::as_array)
             .into_iter()
             .flatten()
-            .filter(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("message"))
-            .flat_map(|item| item.get("content").and_then(serde_json::Value::as_array).into_iter().flatten())
-            .filter(|part| part.get("type").and_then(serde_json::Value::as_str) == Some("output_text"))
+            .filter(|item| {
+                item.get("type").and_then(serde_json::Value::as_str) == Some("message")
+            })
+            .flat_map(|item| {
+                item.get("content")
+                    .and_then(serde_json::Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
+            .filter(|part| {
+                part.get("type").and_then(serde_json::Value::as_str) == Some("output_text")
+            })
             .filter_map(|part| part.get("text").and_then(serde_json::Value::as_str))
             .collect::<Vec<_>>()
             .join(" "),
