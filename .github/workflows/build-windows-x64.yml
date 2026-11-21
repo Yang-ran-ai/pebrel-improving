@@ -40,7 +40,104 @@ jobs:
         env:
           PACKAGE_VERSION: ${{ inputs.package_version }}
         run: |
-          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\\.[0-9]+\\.[0-9]+$') { throw 'Invalid package version.' }
+          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+) { throw 'Invalid package version.' }
+          $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
+          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*)
+          if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
+            throw 'Package version must match pebrel_app/Cargo.toml.'
+          }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Prepare Windows console runtime
+        shell: pwsh
+        run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
+      - name: Build GPUI application and runtime helper
+        shell: pwsh
+        run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
+      - name: Package portable ZIP
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/package-release.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Build installer EXE
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Upload Windows x64 packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebrel-windows-x64
+          path: |
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64.zip
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+) { throw 'Invalid package version.' }
+          $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
+          $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
+          if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
+            throw 'Package version must match pebrel_app/Cargo.toml.'
+          }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Prepare Windows console runtime
+        shell: pwsh
+        run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
+      - name: Build GPUI application and runtime helper
+        shell: pwsh
+        run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
+      - name: Package portable ZIP
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/package-release.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Build installer EXE
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Upload Windows x64 packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebrel-windows-x64
+          path: |
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64.zip
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+)
+          if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
+            throw 'Package version must match pebrel_app/Cargo.toml.'
+          }
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Prepare Windows console runtime
+        shell: pwsh
+        run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
+      - name: Build GPUI application and runtime helper
+        shell: pwsh
+        run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
+      - name: Package portable ZIP
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/package-release.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Build installer EXE
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
+        run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -Force
+      - name: Upload Windows x64 packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebrel-windows-x64
+          path: |
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64.zip
+            dist/Pebrel-v${{ inputs.package_version }}-windows-x64-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+) { throw 'Invalid package version.' }
           $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
           $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
           if (-not $match.Success -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
