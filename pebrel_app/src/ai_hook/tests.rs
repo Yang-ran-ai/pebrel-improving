@@ -547,9 +547,13 @@ fn claude_style_agents_share_the_lifecycle_under_their_own_source() {
         assert_eq!(stop.source, source);
         assert_eq!((stop.kind, stop.session_id.as_deref()), (AiHookKind::TurnDone, Some("s1")));
         assert_eq!(stop.turn_outcome, AiTurnOutcome::Succeeded);
-        let prompt = parse(r#"{"hook_event_name":"UserPromptSubmit","session_id":"s1"}"#).unwrap();
+        let prompt = parse(r#"{"hook_event_name":"UserPromptSubmit","session_id":"s1","event_id":"dsh-session-42-8","bridge_sequence":8,"occurred_at_ms":1700000000000,"cwd":"C:/work/project"}"#).unwrap();
         assert_eq!(prompt.kind, AiHookKind::PromptSubmit);
         assert_eq!(prompt.session_id.as_deref(), Some("s1"));
+        assert_eq!(prompt.event_id.as_deref(), Some("dsh-session-42-8"));
+        assert_eq!(prompt.bridge_sequence, Some(8));
+        assert_eq!(prompt.occurred_at_ms, Some(1_700_000_000_000));
+        assert_eq!(prompt.pane, Some(3), "Pane identity is taken from Pebrel's local hook envelope");
         let tool = parse(r#"{"hook_event_name":"PostToolUse","session_id":"s1","tool_name":"terminal"}"#).unwrap();
         assert_eq!(tool.kind, AiHookKind::ToolComplete);
         assert_eq!(tool.session_id.as_deref(), Some("s1"));
