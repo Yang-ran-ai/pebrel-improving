@@ -1015,7 +1015,7 @@ mod tests {
                 "Chat Completions",
                 "/chat/completions",
                 "authorization: bearer",
-                "\\"thinking\\":{\\"type\\":\\"disabled\\"}",
+                r#""thinking":{"type":"disabled"}"#,
                 r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
             ),
             (
