@@ -980,4 +980,72 @@ mod tests {
         let azure = AiProvider::preset(ProviderKind::AzureOpenAi, "azure");
         assert!(test_url(&azure).unwrap().contains("/openai/models?api-version="));
     }
+
+    #[test]
+    fn deepseek_generation_probe_sends_real_requests_for_each_wire_protocol() {
+        use std::io::{Read, Write};
+
+        let fixtures = [
+            (
+                "Responses",
+                "/responses",
+                "authorization: bearer",
+                r#"{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}"#,
+            ),
+            (
+                "Chat Completions",
+                "/chat/completions",
+                "authorization: bearer",
+                r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
+            ),
+            (
+                "Claude Messages",
+                "/anthropic/v1/messages",
+                "x-api-key: test-deepseek-key",
+                r#"{"content":[{"type":"text","text":"messages ok"}]}"#,
+            ),
+        ];
+        for (protocol, route, expected_auth, response_body) in fixtures {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let mut provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-http-probe");
+            provider.base_url = format!("http://{}", listener.local_addr().unwrap());
+            provider.wire_api = protocol.into();
+            let server = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+                let mut bytes = Vec::new();
+                let mut buffer = [0u8; 1024];
+                loop {
+                    let count = stream.read(&mut buffer).unwrap();
+                    assert_ne!(count, 0);
+                    bytes.extend_from_slice(&buffer[..count]);
+                    if let Some(end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
+                        let headers = String::from_utf8_lossy(&bytes[..end]);
+                        let length: usize = headers.lines().find_map(|line| {
+                            let (name, value) = line.split_once(':')?;
+                            name.eq_ignore_ascii_case("content-length")
+                                .then(|| value.trim().parse().unwrap())
+                        }).unwrap();
+                        if bytes.len() >= end + 4 + length { break; }
+                    }
+                }
+                let request = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
+                assert!(request.starts_with(&format!("post {route} http/1.1")));
+                assert!(request.contains(expected_auth));
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
+                    response_body.len()
+                );
+                stream.write_all(response.as_bytes()).unwrap();
+            });
+            let result = test_deepseek_generation(
+                &provider,
+                Some(Zeroizing::new("test-deepseek-key".to_owned())),
+            ).unwrap();
+            assert_eq!(result.0, 200, "{protocol}");
+            assert!(result.1.ends_with("ok"), "{protocol}: {}", result.1);
+            server.join().unwrap();
+        }
+    }
+
 }
