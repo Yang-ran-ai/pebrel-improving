@@ -405,16 +405,15 @@ pub(crate) fn uninstall_desktop() -> std::io::Result<()> {
     if state.desktop_running {
         return Err(std::io::Error::other("Quit DeepSeek Harness Desktop before uninstalling it."));
     }
-    remove_hook()?;
     let executable = state.desktop_executable.ok_or_else(|| {
         std::io::Error::other("DeepSeek Harness Desktop is not installed.")
     })?;
+    // Locate the uninstaller before changing the profile so a missing setup
+    // component does not leave the user's Desktop profile half-uninstalled.
     // Electron/NSIS layouts may keep the executable in a versioned
     // subdirectory while placing the uninstaller higher in the install tree.
     let uninstaller = find_uninstaller(&executable)
         .ok_or_else(|| std::io::Error::other("The DeepSeek Harness uninstaller was not found."))?;
-    // Find the uninstaller before removing the profile plugin so a missing
-    // setup component cannot leave the profile half-uninstalled.
     remove_hook()?;
     let status = Command::new(uninstaller).status()?;
     if status.success() {
