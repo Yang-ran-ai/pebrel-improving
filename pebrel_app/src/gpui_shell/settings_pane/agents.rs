@@ -31,7 +31,7 @@ pub(super) struct AgentSettingsState {
 
 #[derive(Clone, Copy)]
 enum DeepSeekDesktopAction {
-    Download,
+    Install,
     Launch,
     Uninstall,
 }
@@ -91,12 +91,12 @@ impl SettingsPane {
         let sequence = self.agents.sequence;
         let task = cx.background_executor().spawn(async move {
             let result = match action {
-                DeepSeekDesktopAction::Download => integrations::open_deepseek_harness_download(),
+                DeepSeekDesktopAction::Install => integrations::install_deepseek_harness_desktop(),
                 DeepSeekDesktopAction::Launch => integrations::launch_deepseek_harness(),
                 DeepSeekDesktopAction::Uninstall => integrations::uninstall_deepseek_harness(),
             };
             let message = match action {
-                DeepSeekDesktopAction::Download => "Opened DeepSeek Harness download page".to_owned(),
+                DeepSeekDesktopAction::Download => "Downloaded the official installer and started setup".to_owned(),
                 DeepSeekDesktopAction::Launch => "DeepSeek Harness launch requested".to_owned(),
                 DeepSeekDesktopAction::Uninstall => "DeepSeek Harness uninstaller started".to_owned(),
             };
@@ -448,11 +448,11 @@ impl SettingsPane {
                                 Button::new("deepseek-desktop-download")
                                     .ghost()
                                     .small()
-                                    .label("Download")
+                                    .label("Install")
                                     .disabled(action_disabled)
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         cx.stop_propagation();
-                                        this.deepseek_desktop_action(DeepSeekDesktopAction::Download, cx);
+                                        this.deepseek_desktop_action(DeepSeekDesktopAction::Install, cx);
                                     })),
                             )
                         })
