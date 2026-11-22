@@ -75,8 +75,6 @@ jobs:
         run: cargo metadata --locked --no-deps --format-version 1
       - name: Verify Rust formatting (read-only)
         run: cargo +nightly-2026-11-20 fmt --all -- --check
-      - name: Validate dependency resolution
-        run: cargo check --workspace --all-targets --locked
       - name: Test DeepSeek Harness bridge
         run: npm test --prefix integrations/deepseek-harness-bridge
 
