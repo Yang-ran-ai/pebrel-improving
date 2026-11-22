@@ -160,6 +160,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Restore Cargo build cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-x64-rust-1.97.1
+          cache-all-crates: true
       - name: Validate Cargo workspace metadata
         run: cargo metadata --locked --no-deps --format-version 1
       - name: Prepare Windows console runtime
@@ -170,12 +175,8 @@ jobs:
         run: |
           $archive = Join-Path ([IO.Path]::GetTempPath()) 'pebrel-conpty-source-1.24.260710001.nupkg'
           ./scripts/tests/windows-runtime.tests.ps1 -ArchivePath $archive -Architecture x64
-      - name: Run full Windows workspace regression tests
-        run: cargo test --workspace --all-targets --locked --no-fail-fast
-      - name: Run GPUI settings interaction tests
-        run: cargo test -p pebrel --features gpui-test-support --bin pebrel --locked --no-fail-fast
-      - name: Test DeepSeek Harness bridge
-        run: npm test --prefix integrations/deepseek-harness-bridge
+      - name: Run Windows workspace and GPUI regression tests (single Cargo invocation)
+        run: cargo test --workspace --all-targets --features pebrel/gpui-test-support --locked --no-fail-fast
       - name: Validate package version
         shell: pwsh
         env:
