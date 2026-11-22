@@ -20,7 +20,7 @@ fn expected_resume(kind: AgentKind, id: &str) -> Option<String> {
         Kimi => format!("kimi --session {id}"),
         CommandCode => format!("command-code --resume {id}"),
         Aider | Goose | Droid | Auggie | Hermes | Vibe | Qwen | Cline | Devin | Kiro | Kilo
-        | Qoder | Maki | Trae => return None,
+        | Qoder | Maki | Trae | DeepSeekHarness => return None,
     })
 }
 
