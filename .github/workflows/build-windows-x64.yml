@@ -175,7 +175,7 @@ jobs:
       - name: Run full Windows workspace regression tests
         run: cargo test --workspace --all-targets --locked --no-fail-fast
       - name: Run GPUI settings interaction tests
-        run: cargo test -p pebrel --features gpui-test-support --lib --locked
+        run: cargo test -p pebrel --features gpui-test-support --lib --locked --no-fail-fast
       - name: Test DeepSeek Harness bridge
         run: npm test --prefix integrations/deepseek-harness-bridge
       - name: Validate package version
