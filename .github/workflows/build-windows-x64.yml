@@ -140,10 +140,8 @@ jobs:
 
   windows-x64:
     name: Build and verify Windows x64 packages
-    # Full Windows regression + packaging takes ~30 minutes. Keep PR iteration
-    # on fast source validation; run the costly Windows job only on main pushes
-    # or an explicit workflow_dispatch after preflight review.
-    if: github.event_name != 'pull_request'
+    # Source validation is a required preflight; run the full Windows gate for
+    # every relevant PR update after it succeeds, as well as main pushes/manual runs.
     runs-on: windows-2022
     needs: source-validation
     timeout-minutes: 150
