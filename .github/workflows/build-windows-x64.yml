@@ -52,7 +52,7 @@ env:
 
 jobs:
   source-validation:
-    name: Source validation (metadata, bridge, format)
+    name: Source validation (metadata, bridge, nightly format)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -71,12 +71,17 @@ jobs:
         run: cargo metadata --locked --no-deps --format-version 1
       - name: Test DeepSeek Harness bridge
         run: npm test --prefix integrations/deepseek-harness-bridge
+      - name: Install pinned nightly rustfmt
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-11-20
+          components: rustfmt
       - name: Report pinned formatter versions
         run: |
           rustc --version --verbose
-          cargo fmt --version
-      - name: Verify Rust formatting with workspace-pinned stable rustfmt (read-only)
-        run: cargo fmt --all -- --check
+          cargo +nightly-2026-11-20 fmt --version
+      - name: Verify Rust formatting with pinned nightly rustfmt (read-only)
+        run: cargo +nightly-2026-11-20 fmt --all -- --check
 
   windows-x64:
     name: Build and verify Windows x64 packages
