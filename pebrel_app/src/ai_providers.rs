@@ -1066,7 +1066,7 @@ mod tests {
                 );
                 let header_end = bytes
                     .windows(4)
-                    .position(|window| window == b"\\r\\n\\r\\n")
+                    .position(|window| window == b"\r\n\r\n")
                     .unwrap();
                 let headers = String::from_utf8_lossy(&bytes[..header_end]);
                 let content_length: usize = headers
