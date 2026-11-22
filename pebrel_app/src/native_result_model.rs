@@ -327,14 +327,14 @@ mod tests {
             let parse_ms = started.elapsed().as_secs_f64() * 1000.0;
             let started = std::time::Instant::now();
             let order = table.order("file-9", Some((table.columns.len() - 1, true)));
-            crate::gpui_shell::try_write_stderr(format_args!(
+            eprintln!(
                 "native-result sample {label}: bytes={} rows={} cells={} raw_ms={raw_ms:.3} parse_ms={parse_ms:.3} filter_sort_ms={:.3} matches={}\n",
                 source.len(),
                 table.rows.len(),
                 table.rows.len() * table.columns.len(),
                 started.elapsed().as_secs_f64() * 1000.0,
                 order.len()
-            ));
+            );
         }
     }
 }
