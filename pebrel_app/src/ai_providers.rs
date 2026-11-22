@@ -1060,8 +1060,14 @@ mod tests {
                     request.to_ascii_lowercase().starts_with(&format!("post {route} http/1.1")),
                     "{protocol} request route: {request}"
                 );
-                assert!(request.to_ascii_lowercase().contains(expected_auth), "{protocol} auth header missing");
-                let header_end = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n").unwrap();
+                assert!(
+                    request.to_ascii_lowercase().contains(expected_auth),
+                    "{protocol} auth header missing"
+                );
+                let header_end = bytes
+                    .windows(4)
+                    .position(|window| window == b"\\r\\n\\r\\n")
+                    .unwrap();
                 let headers = String::from_utf8_lossy(&bytes[..header_end]);
                 let content_length: usize = headers
                     .lines()
@@ -1073,7 +1079,8 @@ mod tests {
                     .unwrap();
                 let body_start = header_end + 4;
                 let body: serde_json::Value =
-                    serde_json::from_slice(&bytes[body_start..body_start + content_length]).unwrap();
+                    serde_json::from_slice(&bytes[body_start..body_start + content_length])
+                        .unwrap();
                 assert!(
                     body.to_string().contains(expected_option),
                     "{protocol} request body is missing {expected_option}: {body}"
