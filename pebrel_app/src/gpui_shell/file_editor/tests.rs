@@ -74,7 +74,7 @@ fn link_hover_callbacks_release_evicted_text_views(cx: &mut TestAppContext) {
         window.update(|window, cx| {
             window.draw(cx).clear(cx);
         });
-        let views = file.read_with(&window, |view, _| {
+        let views = file.read_with(window, |view, _| {
             view.blocks
                 .borrow()
                 .iter()
