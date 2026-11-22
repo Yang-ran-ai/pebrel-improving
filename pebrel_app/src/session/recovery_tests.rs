@@ -87,6 +87,10 @@ fn live_recovery_cases_cover_the_registered_cli_entry_points() {
     assert_eq!(cases.len(), AgentKind::ALL.len());
     for kind in AgentKind::ALL {
         let commands = &cases[kind.slug()];
+        if kind == AgentKind::DeepSeekHarness {
+            assert!(commands.is_empty(), "desktop-managed agents must not invent CLI entry points");
+            continue;
+        }
         assert!((1..=2).contains(&commands.len()), "{kind:?}");
         for command in commands {
             assert_eq!(AgentKind::parse_command(command), Some(kind), "{command}");

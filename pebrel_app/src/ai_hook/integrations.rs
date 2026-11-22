@@ -306,7 +306,7 @@ mod tests {
     fn deepseek_harness_is_a_first_class_agent_with_its_own_hook_preference() {
         assert!(AGENTS.contains(&AgentKind::DeepSeekHarness));
         assert_eq!(AgentKind::parse("DeepSeek Harness.exe"), Some(AgentKind::DeepSeekHarness));
-        assert_eq!(AgentKind::parse_command("dsh"), Some(AgentKind::DeepSeekHarness));
+        assert_eq!(AgentKind::parse_command("dsh"), None, "dsh is the plugin-management command, not the desktop app executable");
         assert_eq!(
             AgentKind::DeepSeekHarness.start_command(),
             None,
