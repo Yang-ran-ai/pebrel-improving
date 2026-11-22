@@ -198,7 +198,12 @@ impl AgentKind {
             Self::CodeBuddy => &["codebuddy", "cbc", "codebuddy-code", "codebuddy-lowmem"],
             // The package's `cmd` bin is omitted: it is the Windows Command Prompt.
             Self::CommandCode => &["command-code", "commandcode", "cmdc"],
-            Self::DeepSeekHarness => &["dsh", "deepseek-harness", "deepseek-harness-desktop", "deepseek harness"],
+            Self::DeepSeekHarness => &[
+                "dsh",
+                "deepseek-harness",
+                "deepseek-harness-desktop",
+                "deepseek harness",
+            ],
         }
     }
 
