@@ -186,7 +186,20 @@ fn deepseek_messages_protocol_sends_the_expected_route_and_api_key_header() {
                 .to_ascii_lowercase()
                 .contains("authorization: bearer")
         );
-        assert!(request.contains("\"max_tokens\":512"));
+        let header_end = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n").unwrap();
+        let headers = String::from_utf8_lossy(&bytes[..header_end]);
+        let content_length: usize = headers
+            .lines()
+            .find_map(|line| {
+                let (name, value) = line.split_once(':')?;
+                name.eq_ignore_ascii_case("content-length")
+                    .then(|| value.trim().parse().unwrap())
+            })
+            .unwrap();
+        let body_start = header_end + 4;
+        let body: Value =
+            serde_json::from_slice(&bytes[body_start..body_start + content_length]).unwrap();
+        assert_eq!(body["max_tokens"], 512, "DeepSeek Messages request body: {body}");
         let body = json!({
             "stop_reason":"end_turn",
             "content":[{
