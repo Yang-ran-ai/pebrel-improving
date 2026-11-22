@@ -115,11 +115,20 @@ jobs:
         shell: bash
         env:
           BASE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          base="$BASE_SHA"
+          # PR events do not provide github.event.before. Compare the entire PR
+          # against its base, not only HEAD^; otherwise earlier Rust commits escape.
+          base="$PR_BASE_SHA"
+          if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]]; then
+            base="$BASE_SHA"
+          fi
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] || [[ "$base" =~ ^0+$ ]]; then
-            base="$(git rev-parse HEAD^)"
+            base="$(git merge-base origin/main "$GITHUB_SHA")"
+            if [[ "$base" == "$GITHUB_SHA" ]]; then
+              base="$(git rev-parse HEAD^)"
+            fi
           fi
           mapfile -t rust_files < <(git diff --diff-filter=ACMRT --name-only "$base" "$GITHUB_SHA" -- '*.rs')
           if (( ${#rust_files[@]} == 0 )); then

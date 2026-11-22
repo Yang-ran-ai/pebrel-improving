@@ -199,7 +199,6 @@ impl AgentKind {
             // The package's `cmd` bin is omitted: it is the Windows Command Prompt.
             Self::CommandCode => &["command-code", "commandcode", "cmdc"],
             Self::DeepSeekHarness => &[
-                "dsh",
                 "deepseek-harness",
                 "deepseek-harness-desktop",
                 "deepseek harness",
