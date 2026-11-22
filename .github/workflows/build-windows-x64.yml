@@ -6,7 +6,6 @@ on:
     paths:
       - ".github/workflows/build-windows-x64.yml"
       - ".gitattributes"
-      - "source"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rustfmt.toml"
@@ -24,7 +23,6 @@ on:
       - "pebrel-completions/**"
       - "pebrel_gpui/**"
       - "pebrel_split/**"
-      - "integrations/deepseek-harness-bridge/**"
       - "scripts/**"
       - "assets/**"
       - "docs/**"
@@ -53,9 +51,40 @@ env:
   PYTHONUTF8: "1"
 
 jobs:
+  source-validation:
+    name: Source validation (format, metadata, bridge)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout standalone Pebrel source
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Install pinned nightly rustfmt
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-11-20
+          components: rustfmt
+      - name: Validate Cargo workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1
+      - name: Verify Rust formatting (read-only)
+        run: cargo +nightly-2026-11-20 fmt --all -- --check
+      - name: Validate dependency resolution
+        run: cargo check --workspace --all-targets --locked
+      - name: Test DeepSeek Harness bridge
+        run: npm test --prefix integrations/deepseek-harness-bridge
+
   windows-x64:
+    name: Build and verify Windows x64 packages
     runs-on: windows-2022
-    timeout-minutes: 120
+    needs: source-validation
+    timeout-minutes: 150
     steps:
       - name: Checkout standalone Pebrel source
         uses: actions/checkout@v4
@@ -67,20 +96,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install Rust toolchain
+      - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy
       - name: Validate Cargo workspace metadata
         run: cargo metadata --locked --no-deps --format-version 1
-      - name: Install pinned nightly rustfmt
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2026-11-20
-          components: rustfmt
-      - name: Verify Rust formatting (read-only)
-        run: cargo +nightly-2026-11-20 fmt --all -- --check
-      - name: Run workspace regression tests
+      - name: Run full Windows workspace regression tests
         run: cargo test --workspace --all-targets --locked
       - name: Run GPUI settings interaction tests
         run: cargo test -p pebrel --features gpui-test-support --lib --locked
@@ -92,12 +115,12 @@ jobs:
           PACKAGE_VERSION: ${{ inputs.package_version }}
         run: |
           $manifest = Get-Content pebrel_app/Cargo.toml -Raw -Encoding UTF8
-          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>[0-9]+\.[0-9]+\.[0-9]+)"\s*$')
+          $match = [regex]::Match($manifest, '(?m)^version\\s*=\\s*"(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"\\s*$')
           if (-not $match.Success) { throw 'Unable to read package version from pebrel_app/Cargo.toml.' }
           if ([string]::IsNullOrWhiteSpace($env:PACKAGE_VERSION)) {
             $env:PACKAGE_VERSION = $match.Groups['version'].Value
           }
-          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$' -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
+          if ($env:PACKAGE_VERSION -notmatch '^[0-9]+\\.[0-9]+\\.[0-9]+$' -or $match.Groups['version'].Value -ne $env:PACKAGE_VERSION) {
             throw 'Package version must match pebrel_app/Cargo.toml.'
           }
           "PACKAGE_VERSION=$env:PACKAGE_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
