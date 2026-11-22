@@ -1,4 +1,5 @@
-# Each pair opens one same-directory split per entry point.
+# Each pair opens one same-directory split per interactive CLI entry point.
+# DeepSeek Harness is a desktop app; dsh manages plugins and is not a resumable chat CLI.
 aider = ["aider"]
 amp = ["amp"]
 antigravity = ["agy"]
@@ -27,3 +28,4 @@ qodercli = ["qodercli"]
 qwen = ["qwen"]
 trae-cli = ["trae-cli"]
 vibe = ["vibe"]
+deepseek-harness = []

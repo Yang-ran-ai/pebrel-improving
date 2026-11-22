@@ -340,7 +340,7 @@ fn markdown_document_opens_in_source_mode_and_exposes_compact_mode_switch(cx: &m
     });
     window.run_until_parked();
     let file = file.unwrap();
-    file.read_with(&window, |view, _| {
+    file.read_with(window, |view, _| {
         assert!(view.markdown);
         assert!(!view.preview);
     });

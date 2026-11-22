@@ -1,0 +1,15 @@
+{
+  "name": "pebrel-prompt-suggestions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Native empty-composer predictions through the Pebrel session bridge",
+  "type": "module",
+  "files": [
+    ".claude-plugin/",
+    "hooks/",
+    "README.md"
+  ],
+  "engines": {
+    "claude-code": ">=2.1.310"
+  }
+}

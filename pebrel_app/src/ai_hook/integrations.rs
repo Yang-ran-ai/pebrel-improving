@@ -266,12 +266,7 @@ mod tests {
             (AgentKind::DeepSeekHarness, AgentHook::DeepSeekHarness),
         ];
         for (agent, hook) in supported {
-            assert_eq!(
-                hook_for(agent),
-                Some(hook),
-                "{} hook protocol mapping",
-                agent.slug()
-            );
+            assert_eq!(hook_for(agent), Some(hook), "{} hook protocol mapping", agent.slug());
         }
         assert_eq!(
             AGENTS.iter().filter_map(|agent| hook_for(*agent)).count(),
@@ -306,17 +301,18 @@ mod tests {
     fn deepseek_harness_is_a_first_class_agent_with_its_own_hook_preference() {
         assert!(AGENTS.contains(&AgentKind::DeepSeekHarness));
         assert_eq!(AgentKind::parse("DeepSeek Harness.exe"), Some(AgentKind::DeepSeekHarness));
-        assert_eq!(AgentKind::parse_command("dsh"), Some(AgentKind::DeepSeekHarness));
+        assert_eq!(
+            AgentKind::parse_command("dsh"),
+            None,
+            "dsh is the plugin-management command, not the desktop app executable"
+        );
         assert_eq!(
             AgentKind::DeepSeekHarness.start_command(),
             None,
             "Desktop launch is managed by the dedicated installer/launcher, not a guessed CLI command"
         );
         assert_eq!(hook_for(AgentKind::DeepSeekHarness), Some(AgentHook::DeepSeekHarness));
-        assert_eq!(
-            AgentHook::DeepSeekHarness.settings_key(),
-            "ai_hooks_deepseek_harness"
-        );
+        assert_eq!(AgentHook::DeepSeekHarness.settings_key(), "ai_hooks_deepseek_harness");
     }
 
     #[test]

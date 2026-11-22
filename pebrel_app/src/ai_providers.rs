@@ -11,6 +11,11 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+pub use pebrel_ai_core::{
+    AiError, AiEvent, AiMessage, AiRole, ChatRequest, ChatResponse, FinishReason, ProviderProtocol,
+    SessionId, TokenUsage, ToolCall, ToolDefinition,
+};
+
 #[cfg(feature = "legacy-shell")]
 use crate::event::{Event, EventType};
 use crate::provider_test::ProviderTestOutcome;
@@ -555,7 +560,7 @@ pub fn test_deepseek_generation(
 ) -> Result<(u16, String), String> {
     if provider.kind != ProviderKind::DeepSeek {
         return Err(
-            "Real generation probe is currently defined only for the DeepSeek API preset".into(),
+            "Real generation probe is currently defined only for the DeepSeek API preset".into()
         );
     }
     let model = provider.model.trim();
@@ -624,16 +629,13 @@ pub fn test_deepseek_generation(
     };
     let mut request = agent.post(&url).header("Content-Type", "application/json");
     request = if protocol == "Claude Messages" {
-        request
-            .header("x-api-key", key.as_str())
-            .header("anthropic-version", "2023-06-01")
+        request.header("x-api-key", key.as_str()).header("anthropic-version", "2023-06-01")
     } else {
         let bearer = Zeroizing::new(format!("Bearer {}", key.as_str()));
         request.header("Authorization", bearer.as_str())
     };
-    let mut response = request
-        .send_json(&payload)
-        .map_err(|error| match semantic_error(&error) {
+    let mut response =
+        request.send_json(&payload).map_err(|error| match semantic_error(&error) {
             ProviderTestOutcome::Timeout => "DeepSeek generation request timed out".to_owned(),
             ProviderTestOutcome::HostNotFound => "DeepSeek API host was not found".to_owned(),
             ProviderTestOutcome::ConnectionFailed => {
@@ -645,9 +647,7 @@ pub fn test_deepseek_generation(
     let status = response.status().as_u16();
     if !response.status().is_success() {
         return Err(match status {
-            401 | 403 => {
-                "DeepSeek rejected the API key (HTTP authentication failure)".to_owned()
-            },
+            401 | 403 => "DeepSeek rejected the API key (HTTP authentication failure)".to_owned(),
             404 => format!("DeepSeek {protocol} endpoint or model was not found (HTTP 404)"),
             429 => "DeepSeek rate limit or quota reached (HTTP 429)".to_owned(),
             _ => format!("DeepSeek generation request returned HTTP {status}"),
@@ -679,13 +679,15 @@ fn deepseek_generation_url(provider: &AiProvider, protocol: &str) -> Result<Stri
         "Chat Completions" => "/chat/completions",
         _ => return Err(format!("Unsupported DeepSeek API protocol: {protocol}")),
     };
-    Ok(if base.ends_with(suffix)
-        || (protocol == "Claude Messages" && base.ends_with("/anthropic/v1/messages"))
-    {
-        base.to_owned()
-    } else {
-        format!("{base}{suffix}")
-    })
+    Ok(
+        if base.ends_with(suffix)
+            || (protocol == "Claude Messages" && base.ends_with("/anthropic/v1/messages"))
+        {
+            base.to_owned()
+        } else {
+            format!("{base}{suffix}")
+        },
+    )
 }
 
 fn parse_deepseek_generation(body: &str, protocol: &str) -> Result<String, String> {
@@ -697,14 +699,9 @@ fn parse_deepseek_generation(body: &str, protocol: &str) -> Result<String, Strin
             .and_then(serde_json::Value::as_array)
             .into_iter()
             .flatten()
-            .filter(|item| {
-                item.get("type").and_then(serde_json::Value::as_str) == Some("message")
-            })
+            .filter(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("message"))
             .flat_map(|item| {
-                item.get("content")
-                    .and_then(serde_json::Value::as_array)
-                    .into_iter()
-                    .flatten()
+                item.get("content").and_then(serde_json::Value::as_array).into_iter().flatten()
             })
             .filter(|part| {
                 part.get("type").and_then(serde_json::Value::as_str) == Some("output_text")
@@ -790,14 +787,16 @@ mod deepseek_generation_tests {
             parse_deepseek_generation(
                 r#"{"content":[{"type":"text","text":"message ok"}]}"#,
                 "Claude Messages"
-            ).unwrap(),
+            )
+            .unwrap(),
             "message ok"
         );
         assert_eq!(
             parse_deepseek_generation(
                 r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
                 "Chat Completions"
-            ).unwrap(),
+            )
+            .unwrap(),
             "chat ok"
         );
         assert!(parse_deepseek_generation(r#"{"choices":[]}"#, "Chat Completions").is_err());
@@ -833,10 +832,10 @@ mod tests {
     fn deepseek_preset_offers_current_flash_and_pro_models() {
         let provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek");
         assert_eq!(provider.model, "deepseek-flash");
-        assert_eq!(
-            provider.models,
-            vec!["deepseek-flash".to_owned(), "deepseek-v4-pro".to_owned()]
-        );
+        assert_eq!(provider.models, vec![
+            "deepseek-flash".to_owned(),
+            "deepseek-v4-pro".to_owned()
+        ]);
     }
 
     use super::*;
@@ -856,10 +855,10 @@ mod tests {
         };
         normalize(&mut store);
         assert_eq!(store.providers[0].model, "deepseek-flash");
-        assert_eq!(
-            store.providers[0].models,
-            vec!["deepseek-flash".to_owned(), "deepseek-v4-pro".to_owned()]
-        );
+        assert_eq!(store.providers[0].models, vec![
+            "deepseek-flash".to_owned(),
+            "deepseek-v4-pro".to_owned()
+        ]);
         assert_eq!(store.providers[1].model, "my-deepseek-proxy-model");
         assert_eq!(store.providers[1].models, vec!["my-deepseek-proxy-model".to_owned()]);
     }
@@ -878,16 +877,13 @@ mod tests {
     #[test]
     fn metadata_draft_uses_one_shared_sanitizer() {
         let mut provider = AiProvider::preset(ProviderKind::Custom, "custom-test");
-        apply_metadata_draft(
-            &mut provider,
-            ProviderMetadataDraft {
-                name: " My Provider \n".into(),
-                note: " keep spaces \n but no controls ".into(),
-                website_url: " https://example.com/a b ".into(),
-                base_url: " https://api.example.com /v1 ".into(),
-                model: " model name ".into(),
-            },
-        );
+        apply_metadata_draft(&mut provider, ProviderMetadataDraft {
+            name: " My Provider \n".into(),
+            note: " keep spaces \n but no controls ".into(),
+            website_url: " https://example.com/a b ".into(),
+            base_url: " https://api.example.com /v1 ".into(),
+            model: " model name ".into(),
+        });
         assert_eq!(provider.name, "MyProvider");
         assert_eq!(provider.note, "keep spaces  but no controls");
         assert_eq!(provider.website_url, "https://example.com/ab");
@@ -990,10 +986,7 @@ mod tests {
         assert_eq!(test_url(&deepseek).unwrap(), "https://api.deepseek.com/models");
         let mut deepseek_anthropic = deepseek.clone();
         deepseek_anthropic.base_url = "https://api.deepseek.com/anthropic/v1".into();
-        assert_eq!(
-            test_url(&deepseek_anthropic).unwrap(),
-            "https://api.deepseek.com/models"
-        );
+        assert_eq!(test_url(&deepseek_anthropic).unwrap(), "https://api.deepseek.com/models");
         assert!(deepseek.kind.uses_openai_protocol());
         let azure = AiProvider::preset(ProviderKind::AzureOpenAi, "azure");
         assert!(test_url(&azure).unwrap().contains("/openai/models?api-version="));
@@ -1008,25 +1001,32 @@ mod tests {
                 "Responses",
                 "/responses",
                 "authorization: bearer",
-                "\"reasoning\":{\"effort\":\"none\"}",
+                ("reasoning", "effort", "none"),
                 r#"{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"responses ok"}]}]}"#,
             ),
             (
                 "Chat Completions",
                 "/chat/completions",
                 "authorization: bearer",
-                r#""thinking":{"type":"disabled"}"#,
+                ("thinking", "type", "disabled"),
                 r#"{"choices":[{"message":{"content":"chat ok"}}]}"#,
             ),
             (
                 "Claude Messages",
                 "/anthropic/v1/messages",
                 "x-api-key: test-deepseek-key",
-                "\"reasoning\":{\"effort\":\"none\"}",
+                ("reasoning", "effort", "none"),
                 r#"{"content":[{"type":"text","text":"messages ok"}]}"#,
             ),
         ];
-        for (protocol, route, expected_auth, expected_option, response_body) in fixtures {
+        for (
+            protocol,
+            route,
+            expected_auth,
+            (option_group, option_name, option_value),
+            response_body,
+        ) in fixtures
+        {
             let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
             let mut provider = AiProvider::preset(ProviderKind::DeepSeek, "deepseek-http-probe");
             provider.base_url = format!("http://{}", listener.local_addr().unwrap());
@@ -1055,12 +1055,34 @@ mod tests {
                         }
                     }
                 }
-                let request = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
-                assert!(request.starts_with(&format!(
-                    "post {route} http/1.1"
-                )));
-                assert!(request.contains(expected_auth));
-                assert!(request.contains(expected_option));
+                let request = String::from_utf8_lossy(&bytes);
+                assert!(
+                    request.to_ascii_lowercase().starts_with(&format!("post {route} http/1.1")),
+                    "{protocol} request route: {request}"
+                );
+                assert!(
+                    request.to_ascii_lowercase().contains(expected_auth),
+                    "{protocol} auth header missing"
+                );
+                let header_end = bytes.windows(4).position(|window| window == b"\r\n\r\n").unwrap();
+                let headers = String::from_utf8_lossy(&bytes[..header_end]);
+                let content_length: usize = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse().unwrap())
+                    })
+                    .unwrap();
+                let body_start = header_end + 4;
+                let body: serde_json::Value =
+                    serde_json::from_slice(&bytes[body_start..body_start + content_length])
+                        .unwrap();
+                assert_eq!(
+                    body[option_group][option_name].as_str(),
+                    Some(option_value),
+                    "{protocol} request body option is incorrect: {body}"
+                );
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
                     response_body.len()
@@ -1073,13 +1095,8 @@ mod tests {
             )
             .unwrap();
             assert_eq!(result.0, 200, "{protocol}");
-            assert!(
-                result.1.ends_with("ok"),
-                "{protocol}: {}",
-                result.1
-            );
+            assert!(result.1.ends_with("ok"), "{protocol}: {}", result.1);
             server.join().unwrap();
         }
     }
-
 }

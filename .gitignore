@@ -132,6 +132,7 @@ scripts/render_shell_icon.html
 .run/
 
 *.recording
+!pebrel_terminal/tests/ref/**/nebula.recording
 output/
 
 /nul
