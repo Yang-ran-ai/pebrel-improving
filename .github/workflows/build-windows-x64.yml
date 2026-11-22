@@ -78,9 +78,7 @@ jobs:
         with:
           toolchain: nightly-2026-11-20
           components: rustfmt
-      - name: Apply repository Rust formatting
-        run: cargo +nightly-2026-11-20 fmt --all
-      - name: Verify Rust formatting
+      - name: Verify Rust formatting (read-only)
         run: cargo +nightly-2026-11-20 fmt --all -- --check
       - name: Run workspace regression tests
         run: cargo test --workspace --all-targets --locked
