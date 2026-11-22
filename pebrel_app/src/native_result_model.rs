@@ -114,9 +114,11 @@ fn bounded_values(text: &str) -> Result<Vec<Value>, &'static str> {
     struct Rows;
     impl<'de> serde::de::Visitor<'de> for Rows {
         type Value = Result<Vec<Value>, &'static str>;
+
         fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.write_str("an array of table records")
         }
+
         fn visit_seq<A: serde::de::SeqAccess<'de>>(
             self,
             mut seq: A,
@@ -170,6 +172,7 @@ impl GitProgress {
     pub fn rows(&self) -> usize {
         self.phases.len() + self.tail.len() + self.pending_lines().count() + 1
     }
+
     pub fn pending_lines(&self) -> impl Iterator<Item = &str> {
         self.pending.iter().map(String::as_str).filter(|line| {
             let value = line.trim().strip_prefix("remote: ").unwrap_or(line.trim());
@@ -179,6 +182,7 @@ impl GitProgress {
                     .any(|phase| value.starts_with(phase) || phase.starts_with(value))
         })
     }
+
     pub fn feed(&mut self, text: &str, stderr: bool) {
         let stream = usize::from(stderr);
         for c in text.chars() {
@@ -190,12 +194,14 @@ impl GitProgress {
             }
         }
     }
+
     pub fn finish(&mut self) {
         for stream in 0..2 {
             let line = std::mem::take(&mut self.pending[stream]);
             self.line(line.trim());
         }
     }
+
     fn line(&mut self, line: &str) {
         let line = line.strip_prefix("remote: ").unwrap_or(line);
         if line.is_empty() {
