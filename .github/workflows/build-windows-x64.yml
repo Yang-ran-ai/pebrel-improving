@@ -75,6 +75,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "1"
   RUST_BACKTRACE: "1"
   RUST_TOOLCHAIN: "1.97.1"
   PYTHONUTF8: "1"
@@ -175,7 +176,7 @@ jobs:
         run: |
           $archive = Join-Path ([IO.Path]::GetTempPath()) 'pebrel-conpty-source-1.24.260710001.nupkg'
           ./scripts/tests/windows-runtime.tests.ps1 -ArchivePath $archive -Architecture x64
-      - name: Run Windows workspace and GPUI regression tests (single Cargo invocation)
+      - name: Run full Windows workspace regression tests
         run: cargo test --workspace --all-targets --features pebrel/gpui-test-support --locked --no-fail-fast
       - name: Validate package version
         shell: pwsh
