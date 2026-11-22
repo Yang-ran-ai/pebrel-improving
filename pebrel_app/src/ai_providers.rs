@@ -1055,12 +1055,29 @@ mod tests {
                         }
                     }
                 }
-                let request = String::from_utf8_lossy(&bytes).to_ascii_lowercase();
-                assert!(request.starts_with(&format!(
-                    "post {route} http/1.1"
-                )));
-                assert!(request.contains(expected_auth));
-                assert!(request.contains(expected_option));
+                let request = String::from_utf8_lossy(&bytes);
+                assert!(
+                    request.to_ascii_lowercase().starts_with(&format!("post {route} http/1.1")),
+                    "{protocol} request route: {request}"
+                );
+                assert!(request.to_ascii_lowercase().contains(expected_auth), "{protocol} auth header missing");
+                let header_end = bytes.windows(4).position(|window| window == b"\\r\\n\\r\\n").unwrap();
+                let headers = String::from_utf8_lossy(&bytes[..header_end]);
+                let content_length: usize = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse().unwrap())
+                    })
+                    .unwrap();
+                let body_start = header_end + 4;
+                let body: serde_json::Value =
+                    serde_json::from_slice(&bytes[body_start..body_start + content_length]).unwrap();
+                assert!(
+                    body.to_string().contains(expected_option),
+                    "{protocol} request body is missing {expected_option}: {body}"
+                );
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response_body}",
                     response_body.len()
