@@ -530,7 +530,6 @@ mod tests {
         }
     }
 
-    #[test]
     fn rollout_record(
         filename_id: &str,
         metadata_id: &str,
