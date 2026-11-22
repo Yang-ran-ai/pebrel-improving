@@ -8,6 +8,7 @@ members = [
     "pebrel_hook",
     "pebrel_gpui",
     "pebrel_settings",
+    "pebrel_ai_core",
     "pebrel_split",
     "mobile/link",
 ]

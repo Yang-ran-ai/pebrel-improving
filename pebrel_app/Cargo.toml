@@ -68,6 +68,10 @@ optional = true
 [dependencies.pebrel-settings]
 path = "../pebrel_settings"
 
+# UI-independent AI contracts shared by API transports, local hooks, and answer views.
+[dependencies.pebrel-ai-core]
+path = "../pebrel_ai_core"
+
 # 分屏规则的共享权威实现（布局树/拖拽比例/方向导航）；GPUI 壳消费。
 [dependencies.pebrel-split]
 path = "../pebrel_split"

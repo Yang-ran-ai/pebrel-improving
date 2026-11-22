@@ -1,0 +1,10 @@
+[package]
+name = "pebrel-ai-core"
+version = "2.5.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "UI-independent AI conversation contracts for Pebrel"
+
+[lib]
+path = "src/lib.rs"

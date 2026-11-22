@@ -11,6 +11,11 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 
+pub use pebrel_ai_core::{
+    AiError, AiEvent, AiMessage, AiRole, ChatRequest, ChatResponse, FinishReason, ProviderProtocol,
+    SessionId, TokenUsage, ToolCall, ToolDefinition,
+};
+
 #[cfg(feature = "legacy-shell")]
 use crate::event::{Event, EventType};
 use crate::provider_test::ProviderTestOutcome;
