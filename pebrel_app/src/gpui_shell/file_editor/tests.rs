@@ -74,7 +74,7 @@ fn link_hover_callbacks_release_evicted_text_views(cx: &mut TestAppContext) {
         window.update(|window, cx| {
             window.draw(cx).clear(cx);
         });
-        let views = file.read_with(window, |view, _| {
+        let views = file.read_with(&window, |view, _| {
             view.blocks
                 .borrow()
                 .iter()
@@ -340,7 +340,7 @@ fn markdown_document_opens_in_source_mode_and_exposes_compact_mode_switch(cx: &m
     });
     window.run_until_parked();
     let file = file.unwrap();
-    file.read_with(&window, |view, _| {
+    file.read_with(window, |view, _| {
         assert!(view.markdown);
         assert!(!view.preview);
     });
