@@ -167,8 +167,13 @@ jobs:
       - name: Prepare Windows console runtime
         shell: pwsh
         run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
+      - name: Test pinned Windows console runtime preparation
+        shell: pwsh
+        run: |
+          $archive = Join-Path ([IO.Path]::GetTempPath()) 'pebrel-conpty-source-1.24.260710001.nupkg'
+          ./scripts/tests/windows-runtime.tests.ps1 -ArchivePath $archive -Architecture x64
       - name: Run full Windows workspace regression tests
-        run: cargo test --workspace --all-targets --locked
+        run: cargo test --workspace --all-targets --locked --no-fail-fast
       - name: Run GPUI settings interaction tests
         run: cargo test -p pebrel --features gpui-test-support --lib --locked
       - name: Test DeepSeek Harness bridge
@@ -193,6 +198,9 @@ jobs:
       - name: Build GPUI application and runtime helper (single build)
         shell: pwsh
         run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
+      - name: Test installer invariants against built product
+        shell: pwsh
+        run: ./scripts/tests/installer.tests.ps1 -TargetDirectory target
       - name: Test Windows package manifest and architecture guards
         shell: pwsh
         run: ./scripts/tests/package-release.tests.ps1 -TargetDirectory target
@@ -205,6 +213,20 @@ jobs:
       - name: Build installer EXE
         shell: pwsh
         run: ./scripts/build-installer.ps1 -Version $env:PACKAGE_VERSION -PackageBrand Pebrel -OutputDirectory dist -TargetDirectory target -SkipBuild -Force
+      - name: Test installer migration and launch fixtures
+        shell: pwsh
+        run: |
+          $candidates = @(
+            $env:ISCC_PATH,
+            (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe')
+          ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          $compiler = $candidates | Where-Object {
+            Test-Path -LiteralPath $_ -PathType Leaf
+          } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($compiler)) { throw 'ISCC.exe was not found after installation.' }
+          ./scripts/tests/installer-migration.tests.ps1 -InnoCompiler $compiler
       - name: Smoke-test portable ZIP and installer lifecycle
         shell: pwsh
         run: |
