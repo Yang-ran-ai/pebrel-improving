@@ -29,6 +29,35 @@ on:
       - "README*"
       - "LICENSE*"
       - "THIRD-PARTY-NOTICES"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/build-windows-x64.yml"
+      - ".gitattributes"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rustfmt.toml"
+      - "rust-toolchain.toml"
+      - ".cargo/**"
+      - "mobile/link/**"
+      - "third_party/**"
+      - "integrations/**"
+      - "pebrel_app/**"
+      - "pebrel_settings/**"
+      - "pebrel_hook/**"
+      - "pebrel_terminal/**"
+      - "pebrel_config/**"
+      - "pebrel_config_derive/**"
+      - "pebrel-completions/**"
+      - "pebrel_gpui/**"
+      - "pebrel_split/**"
+      - "scripts/**"
+      - "assets/**"
+      - "docs/**"
+      - "README*"
+      - "LICENSE*"
+      - "THIRD-PARTY-NOTICES"
   workflow_dispatch:
     inputs:
       package_version:
