@@ -151,6 +151,9 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - name: Validate Cargo workspace metadata
         run: cargo metadata --locked --no-deps --format-version 1
+      - name: Prepare Windows console runtime
+        shell: pwsh
+        run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
       - name: Run full Windows workspace regression tests
         run: cargo test --workspace --all-targets --locked
       - name: Run GPUI settings interaction tests
@@ -174,9 +177,6 @@ jobs:
           "PACKAGE_VERSION=$env:PACKAGE_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
-      - name: Prepare Windows console runtime
-        shell: pwsh
-        run: ./scripts/prepare-windows-runtime.ps1 -Destination assets/windows/conhost
       - name: Build GPUI application and runtime helper (single build)
         shell: pwsh
         run: ./scripts/build-windows-product.ps1 -Configuration release -TargetDirectory target
